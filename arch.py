@@ -8,36 +8,36 @@ def get_activation_function(act_str):
         return tf.nn.relu
     raise NotImplementedError
 
-def initialize_weights(shape, stddev, weight_decay=None):
+def initialize_weights(shape, stddev: float, weight_decay=None) -> tf.Variable:
     var = tf.Variable(tf.truncated_normal(shape, stddev=stddev))
     if weight_decay is not None:
         loss_weight_decay = weight_decay * tf.nn.l2_loss(var)
         tf.add_to_collection('weight_regularizers', loss_weight_decay)
     return var
 
-def initialize_biases(shape, value):
+def initialize_biases(shape, value: float) -> tf.Variable:
     return tf.Variable(tf.constant(value, shape=shape))
 
-def conv2d(x, ksize, stride, chan_out, border_mode='SAME', init_stddev=1.0, weight_decay=None):
+def conv2d(x: tf.Tensor, ksize, stride, chan_out, border_mode='SAME', init_stddev=1.0, weight_decay=None):
     chan_in = utils.tensor_shape_as_list(x)[-1]
     # no bias needed because we batch normalize
     W = initialize_weights([ksize, ksize, chan_in, chan_out], init_stddev, weight_decay)
     return tf.nn.conv2d(x, W, [1, stride, stride, 1], border_mode)
 
-def avg_pool(x, ksize, stride=None, border_mode='SAME'):
+def avg_pool(x: tf.Tensor, ksize, stride=None, border_mode='SAME'):
     stride = stride or ksize
     return tf.nn.avg_pool(x, [1, ksize, ksize, 1], [1, stride, stride, 1], padding=border_mode)
 
-def atrous_conv2d(x, ksize, rate, chan_out, border_mode='SAME', init_stddev=1.0, weight_decay=None):
+def atrous_conv2d(x: tf.Tensor, ksize, rate, chan_out, border_mode='SAME', init_stddev=1.0, weight_decay=None):
     chan_in = utils.tensor_shape_as_list(x)[-1]
     W = initialize_weights([ksize, ksize, chan_in, chan_out], init_stddev, weight_decay)
     return tf.nn.atrous_conv2d(x, W, rate, border_mode)
 
-def max_pool(x, ksize, stride=None, border_mode='SAME'):
+def max_pool(x: tf.Tensor, ksize, stride=None, border_mode='SAME'):
     stride = stride or ksize
     return tf.nn.max_pool(x, [1, ksize, ksize, 1], [1, stride, stride, 1], padding=border_mode)
 
-def resid_block(x, is_training, ksize, activation=tf.nn.relu, init_stddev=1.0, weight_decay=None):
+def resid_block(x: tf.Tensor, is_training, ksize, activation=tf.nn.relu, init_stddev=1.0, weight_decay=None):
     chan_in = utils.tensor_shape_as_list(x)[-1]
     conv1 = conv2d(x, ksize, 1, chan_in, init_stddev=init_stddev, weight_decay=weight_decay)
     conv1 = batch_norm(conv1, is_training)
@@ -48,7 +48,7 @@ def resid_block(x, is_training, ksize, activation=tf.nn.relu, init_stddev=1.0, w
 
     return activation(conv2 + x)
 
-def resid_block_dim_increase(x, is_training, ksize, stride, chan_out, activation=tf.nn.relu, init_stddev=1.0, weight_decay=None):
+def resid_block_dim_increase(x: tf.Tensor, is_training, ksize, stride, chan_out, activation=tf.nn.relu, init_stddev=1.0, weight_decay=None):
     chan_in = utils.tensor_shape_as_list(x)[-1]
     conv1 = conv2d(x, ksize, stride, chan_out, init_stddev=init_stddev, weight_decay=weight_decay)
     conv1 = batch_norm(conv1, is_training)
@@ -60,7 +60,7 @@ def resid_block_dim_increase(x, is_training, ksize, stride, chan_out, activation
     shortcut = conv2d(x, 1, stride, chan_out, init_stddev=init_stddev, weight_decay=weight_decay)
     return activation(conv2 + shortcut)
 
-def bottleneck_block(x, is_training, activation=tf.nn.relu, init_stddev=1.0, weight_decay=None):
+def bottleneck_block(x: tf.Tensor, is_training, activation=tf.nn.relu, init_stddev=1.0, weight_decay=None):
     chan_in = utils.tensor_shape_as_list(x)[-1]
     conv1 = conv2d(x, 1, 1, chan_in // 4, init_stddev=init_stddev, weight_decay=weight_decay)
     conv1 = batch_norm(conv1, is_training)
@@ -75,7 +75,7 @@ def bottleneck_block(x, is_training, activation=tf.nn.relu, init_stddev=1.0, wei
 
     return activation(conv3 + x)
 
-def bottleneck_block_dim_increase(x, is_training, ksize, stride, chan_out, activation=tf.nn.relu, init_stddev=1.0, weight_decay=None):
+def bottleneck_block_dim_increase(x: tf.Tensor, is_training, ksize, stride, chan_out, activation=tf.nn.relu, init_stddev=1.0, weight_decay=None):
     chan_in = utils.tensor_shape_as_list(x)[-1]
     conv1 = conv2d(x, 1, stride, chan_out // 4, init_stddev=init_stddev, weight_decay=weight_decay)
     conv1 = batch_norm(conv1, is_training)
@@ -92,7 +92,7 @@ def bottleneck_block_dim_increase(x, is_training, ksize, stride, chan_out, activ
     shortcut = conv2d(x, 1, stride, chan_out, init_stddev=init_stddev, weight_decay=weight_decay)
     return activation(conv3 + shortcut)
 
-def resid_group(x, is_training, ksize, chan_out, num_resid, downsize_factor=2, init_stddev=1.0, weight_decay=None, activation=tf.nn.relu):
+def resid_group(x: tf.Tensor, is_training, ksize, chan_out, num_resid, downsize_factor=2, init_stddev=1.0, weight_decay=None, activation=tf.nn.relu):
     resid1 = None
     chan_in = utils.tensor_shape_as_list(x)[-1]
     if chan_in == chan_out:
@@ -105,7 +105,7 @@ def resid_group(x, is_training, ksize, chan_out, num_resid, downsize_factor=2, i
         outp = resid_block(outp, is_training, ksize, activation=activation)
     return outp
 
-def bottleneck_group(x, is_training, ksize, chan_out, num_resid, downsize_factor=2, init_stddev=1.0, weight_decay=None, activation=tf.nn.relu):
+def bottleneck_group(x: tf.Tensor, is_training, ksize, chan_out, num_resid, downsize_factor=2, init_stddev=1.0, weight_decay=None, activation=tf.nn.relu):
     resid1 = None
     chan_in = utils.tensor_shape_as_list(x)[-1]
     if chan_in == chan_out:
@@ -118,11 +118,11 @@ def bottleneck_group(x, is_training, ksize, chan_out, num_resid, downsize_factor
         outp = bottleneck_block(outp, is_training, activation=activation)
     return outp
 
-def fully_connected(x, num_outputs, init_weights_stddev=1.0, init_bias_value=0.0, weight_decay=None):
+def fully_connected(x: tf.Tensor, num_outputs, init_weights_stddev=1.0, init_bias_value=0.0, weight_decay=None):
     num_inputs = utils.tensor_shape_as_list(x)[1]
     W = initialize_weights([num_inputs, num_outputs], init_weights_stddev, weight_decay)
     b = initialize_biases([num_outputs], init_bias_value)
     return tf.nn.xw_plus_b(x, W, b)
 
-def batch_norm(x, is_training, scale=False):
+def batch_norm(x: tf.Tensor, is_training, scale=False):
     return tf.contrib.layers.batch_norm(x, is_training=is_training, scale=scale)
