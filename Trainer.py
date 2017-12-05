@@ -17,7 +17,13 @@ class Trainer:
         opt = self.opt
 
         dataset = self._get_dataset()
-        dl = BatchedDataLoader.from_data(opt.data_root).with_dataset(dataset).training().randomized()
+        dl = (BatchedDataLoader
+                .from_data(opt.data_root)
+                .with_dataset(dataset)
+                .image_size(opt.image_width, opt.image_height)
+                .training()
+                .randomized()
+              )
 
         g = tf.Graph()
         with g.as_default(), g.device(opt.device), tf.Session(config=tf.ConfigProto(allow_soft_placement=True)) as sess:
