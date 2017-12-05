@@ -1,3 +1,8 @@
+/data/coco/*
+/data/mitade/*
+!/data/coco/.gitkeep
+!/data/mitade/.gitkeep
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
