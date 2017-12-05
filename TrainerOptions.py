@@ -41,5 +41,5 @@ class TrainerOptions:
         parser.add_argument('--opt_decay', type=float, default=0.9)
         parser.add_argument('--opt_epsilon', type=float, default=1e-10)
         parser.add_argument('--opt_weight_decay', type=float, default=1e-4)
-        parser.add_argument('--opt_dropout_keep_prob', type=float, default=0.8)
+        parser.add_argument('--opt_dropout_keep_prob', type=float, default=None)
         self.options = vars(parser.parse_args())

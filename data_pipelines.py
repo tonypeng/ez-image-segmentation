@@ -1,4 +1,6 @@
+import numpy as np
 import os
+import utils
 from random import shuffle
 
 
@@ -16,6 +18,8 @@ class BatchedDataLoader:
         self.randomize = False
         self.data_idx = None
         self.dataset = None
+        self.image_width = None
+        self.image_height = None
         self.phase = BatchedDataLoader._TRAIN
         self.data_file_paths = None
 
@@ -25,6 +29,11 @@ class BatchedDataLoader:
 
     def randomized(self):
         self.randomize = True
+        return self
+
+    def image_dimensions(self, width, height):
+        self.image_width = width
+        self.image_height = height
         return self
 
     def training(self):
@@ -43,17 +52,22 @@ class BatchedDataLoader:
         if self.data_idx is None:
             self._initialize_dataset()
 
-        batch_x_file_paths = [None] * n
-        batch_y_file_paths = [None] * n
+        batch_x = [None] * n
+        batch_y = [None] * n
 
         for i in range(n):
-            batch_x_file_paths[i], batch_y_file_paths[i] = self.data_file_paths[self.data_idx]
+            batch_x_file_path, batch_y_file_path = self.data_file_paths[self.data_idx]
+            x = utils.read_image(batch_x_file_path, size=(self.image_height, self.image_width))
+            batch_x[i] = x.astype(np.float32) / 255. - self.dataset.get_data_mean()
+            batch_y[i] = utils.read_image(batch_y_file_path,
+                                          mode='I', size=(self.image_height, self.image_width)).astype('int32')
+
             self.data_idx += 1
             if self.data_idx == len(self.data_file_paths):
                 self.data_idx = 0
                 shuffle(self.data_file_paths)
 
-        return batch_x_file_paths, batch_y_file_paths
+        return batch_x, batch_y
 
     def _initialize_dataset(self):
         if self.phase == BatchedDataLoader._TRAIN:
@@ -68,6 +82,10 @@ class BatchedDataLoader:
 class MitAde:
     def __init__(self, data_root):
         self.data_root = os.path.join(data_root, 'mitade')
+        self.data_mean = np.array([124.6901 / 255., 118.6897 / 255., 109.5388 / 255.])
+
+    def get_data_mean(self):
+        return self.data_mean
 
     def get_train_file_paths(self):
         train_data_root_x = os.path.join(self.data_root, 'images', 'training')

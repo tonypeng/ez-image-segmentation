@@ -60,11 +60,14 @@ def atrous_conv2d(x: tf.Tensor, ksize, rate, chan_out, border_mode='SAME', init_
 
 
 def conv2d_bn_activation(x: tf.Tensor, is_training, ksize, stride, chan_out,
-                         border_mode='SAME', activation=tf.nn.relu, bn_scale=False, init_stddev=1.0, weight_decay=None):
+                         border_mode='SAME', activation=tf.nn.relu, bn_scale=False, init_stddev=1.0, weight_decay=None,
+                         dropout_keep_prob=None):
     outp = conv2d(x, ksize, stride,
                   chan_out=chan_out, border_mode=border_mode, init_stddev=init_stddev, weight_decay=weight_decay)
     outp = batch_norm(outp, is_training, scale=bn_scale)
     outp = activation(outp)
+    if dropout_keep_prob is not None:
+        outp = dropout(outp, dropout_keep_prob)
     return outp
 
 def max_pool(x: tf.Tensor, ksize, stride=None, border_mode='SAME'):
@@ -73,30 +76,36 @@ def max_pool(x: tf.Tensor, ksize, stride=None, border_mode='SAME'):
 
 
 def dense_block(x: tf.Tensor, is_training, num_layers: int, add_features_per_layer=16, activation=tf.nn.relu,
-                feature_maps_out=None, init_stddev=1.0, weight_decay=None) -> tf.Tensor:
+                feature_maps_out=None, init_stddev=1.0, weight_decay=None, dropout_keep_prob=None) -> tf.Tensor:
     output = x
     for i in range(num_layers):
         output = conv2d_bn_activation(x, is_training, 3, 1, add_features_per_layer,
-                                      activation=activation, init_stddev=init_stddev, weight_decay=weight_decay)
+                                      activation=activation, init_stddev=init_stddev, weight_decay=weight_decay,
+                                      dropout_keep_prob=dropout_keep_prob)
         if feature_maps_out is not None:
             feature_maps_out.append(output)
         output = tf.concat([x, output], 3)
     return output
 
 
-def transition_down_block(x: tf.Tensor, is_training, activation=tf.nn.relu, init_stddev=1.0, weight_decay=None):
+def transition_down_block(x: tf.Tensor, is_training,
+                          activation=tf.nn.relu, init_stddev=1.0, weight_decay=None, dropout_keep_prob=None):
     chan_in = utils.tensor_shape_as_list(x)[-1]
     outp = conv2d_bn_activation(x, is_training, 1, 1, chan_in,
-                                activation=activation, init_stddev=init_stddev, weight_decay=weight_decay)
+                                activation=activation, init_stddev=init_stddev, weight_decay=weight_decay,
+                                dropout_keep_prob=dropout_keep_prob)
     outp = max_pool(outp, 2)
     return outp
 
 
-def transition_up_block(x: tf.Tensor, is_training, activation=tf.nn.relu, init_stddev=1.0, weight_decay=None):
+def transition_up_block(x: tf.Tensor, is_training,
+                        activation=tf.nn.relu, init_stddev=1.0, weight_decay=None, dropout_keep_prob=None):
     chan_in = utils.tensor_shape_as_list(x)[-1]
     outp = deconv2d(x, 3, 2, chan_in, init_stddev=init_stddev, weight_decay=weight_decay)
     outp = batch_norm(outp, is_training)
     outp = activation(outp)
+    if dropout_keep_prob is not None:
+        outp = dropout(outp, dropout_keep_prob)
     return outp
 
 
@@ -109,3 +118,7 @@ def fully_connected(x: tf.Tensor, num_outputs, init_weights_stddev=1.0, init_bia
 
 def batch_norm(x: tf.Tensor, is_training, scale=False):
     return tf.contrib.layers.batch_norm(x, is_training=is_training, scale=scale)
+
+
+def dropout(x: tf.Tensor, keep_prob: float) -> tf.Tensor:
+    return tf.nn.dropout(x, keep_prob)

@@ -1,4 +1,3 @@
-import Trainer
 from Trainer import *
 from TrainerOptions import *
 

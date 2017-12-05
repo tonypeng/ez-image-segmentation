@@ -25,7 +25,6 @@ class Trainer:
 
             # Hyperparameters
             learning_rate = tf.placeholder(tf.float32)
-            dropout_keep_prob = tf.placeholder(tf.float32)
 
             # Input (x) / per-pixel output labels (y)
             x = tf.placeholder(tf.float32, [None, opt.image_height, opt.image_width, 3])
@@ -37,7 +36,7 @@ class Trainer:
             # Construct network and compute spatial logits
             print("1. Constructing network...")
             with tf.variable_scope(opt.model_name):
-                spatial_logits = self._construct_net(x_preproc, is_training, dropout_keep_prob)
+                spatial_logits = self._construct_net(x_preproc, is_training)
 
             # Compute losses
             print("2. Creating losses...")
@@ -65,7 +64,6 @@ class Trainer:
                              x: batch_x,
                              y: batch_y,
                              learning_rate: curr_learning_rate,
-                             dropout_keep_prob: opt.opt_dropout_keep_prob,
                              is_training: True,
                          })
                 it += 1
@@ -78,7 +76,7 @@ class Trainer:
             return MitAde
         raise NotImplementedError
 
-    def _construct_net(self, x: tf.Tensor, is_training, dropout_keep_prob) -> tf.Tensor:
+    def _construct_net(self, x: tf.Tensor, is_training) -> tf.Tensor:
         if self.opt.arch == 'tiramisu103':
             return nets.Tiramisu103(x, is_training, self.opt)
         raise NotImplementedError
