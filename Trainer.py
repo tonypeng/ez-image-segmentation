@@ -1,8 +1,13 @@
 import nets
 import tensorflow as tf
+slim = tf.contrib.slim
 
 from data_pipelines import *
 from TrainerOptions import *
+import preprocessor as pre
+import ade20k
+
+num_classes=150
 
 class Trainer:
     def __init__(self, opt: TrainerOptions):
@@ -16,14 +21,18 @@ class Trainer:
         curr_learning_rate = self.opt.opt_learning_rate
         opt = self.opt
 
-        dataset = self._get_dataset()
-        dl = (BatchedDataLoader
-                .from_data(opt.data_root)
-                .with_dataset(dataset)
-                .image_dimensions(opt.image_width, opt.image_height)
-                .training()
-                .randomized()
-              )
+        # Get datasets
+        train_data = ade20k.get_split('training', 'data/ade20k/records')
+        val_data  = ade20k.get_split('validation', 'data/ade20k/records')
+
+        # dataset = self._get_dataset()
+        # dl = (BatchedDataLoader
+        #         .from_data(opt.data_root)
+        #         .with_dataset(dataset)
+        #         .image_dimensions(opt.image_width, opt.image_height)
+        #         .training()
+        #         .randomized()
+        #       )
 
         # Path to save checkpoint files
         path_save = './checkpoints/'+opt.model_name+'/'
@@ -35,17 +44,41 @@ class Trainer:
             # Hyperparameters
             learning_rate = tf.placeholder(tf.float32)
 
-            # Input (x) / per-pixel output labels (y)
-            x = tf.placeholder(tf.float32, [None, opt.image_height, opt.image_width, 3])
-            y = tf.placeholder(tf.int64, [None, opt.image_height, opt.image_width, 1])
+            # Get data providers
+            training_provider = slim.dataset_data_provider.DatasetDataProvider(
+                                train_data,
+                                num_readers=opt.num_readers,
+                                common_queue_capacity=20 * opt.batch_size,
+                                common_queue_min=10 * opt.batch_size)
+            validation_provider = slim.dataset_data_provider.DatasetDataProvider(
+                                val_data,
+                                num_readers=opt.num_readers,
+                                common_queue_capacity=20 * opt.batch_size,
+                                common_queue_min=10 * opt.batch_size)
+            training_queue = self._batch_queue(training_provider, True)
+            validation_queue = self._batch_queue(validation_provider, False)
 
-            # Pre-process data
-            x_preproc = self._preprocess_data(x)
+            # Input (x) / per-pixel output labels (y)
+            q_selector = tf.cond(is_training,
+                     lambda: tf.constant(0),
+                     lambda: tf.constant(1))
+
+            # select_q = tf.placeholder(tf.int32, [])
+            q = tf.QueueBase.from_list(q_selector, [training_queue, validation_queue])
+
+            # # Create batch of items.
+            x, y = q.dequeue()
+            print(y)
+
+            # x = tf.placeholder(tf.float32, [None, opt.image_height, opt.image_width, 3])
+            # y = tf.placeholder(tf.int64, [None, opt.image_height, opt.image_width, 1])
+
+            # x_preproc = self._preprocess_data(x)
 
             # Construct network and compute spatial logits
             print("1. Constructing network...")
             with tf.variable_scope(opt.model_name):
-                spatial_logits = self._construct_net(x_preproc, is_training)
+                spatial_logits = self._construct_net(x, is_training)
 
             # Compute losses
             print("2. Creating losses...")
@@ -81,24 +114,19 @@ class Trainer:
                 it = opt.start_from_iteration
 
             while it < opt.opt_iterations:
-                batch_x, batch_y = dl.next_batch(opt.batch_size)
+                raise('oh no')
                 sess.run(optimize,
                          feed_dict={
-                             x: batch_x,
-                             y: batch_y,
                              learning_rate: curr_learning_rate,
                              is_training: True,
                          })
+                print(it)
 
                 # Compute validation loss
                 if it % opt.val_loss_iter_print == 0:
-                    images_batch_val, labels_batch_val = dl.next_batch(opt.batch_size)
                     curr_val_loss, val_loss_summ, learning_rate_summ = sess.run([loss, loss_valid_summary, learning_rate_summary],
                                             feed_dict={
-                                                x: images_batch_val,
-                                                y: labels_batch_val,
                                                 learning_rate: curr_learning_rate,
-                                                keep_dropout: opt.dropout_keep_prob,
                                                 is_training: False})
 
                     # adjust loss if we need to                                                                                                                                                                                        │··············
@@ -116,10 +144,7 @@ class Trainer:
                 if it % opt.train_loss_iter_print == 0:
                     curr_loss, loss_summ = sess.run([loss, loss_training_summary],
                                                     feed_dict={
-                                                        x: images_batch,
-                                                        y: labels_batch,
                                                         learning_rate: curr_learning_rate,
-                                                        keep_dropout: opt.dropout_keep_prob,
                                                         is_training: False})
                     writer.add_summary(loss_summ, it)
 
@@ -156,3 +181,13 @@ class Trainer:
         elif self.opt.optimizer == 'momentum':
             return tf.train.MomentumOptimizer(learning_rate, self.opt.opt_momentum)
         raise NotImplementedError
+
+    def _batch_queue(self, provider, is_training=True):
+        [image, label] = provider.get(['image', 'label'])
+        image, label = pre.preprocess_image(image, self.opt.image_height, self.opt.image_width, label=label, is_training=is_training)
+        images, labels = tf.train.batch(
+            [image, label],
+            batch_size=self.opt.batch_size,
+            num_threads=self.opt.num_preprocessing_threads,
+            capacity=5 * self.opt.batch_size)
+        return slim.prefetch_queue.prefetch_queue([images, labels], capacity=2)

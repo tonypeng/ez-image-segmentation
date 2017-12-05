@@ -76,8 +76,6 @@ class BatchedDataLoader:
             self.data_file_paths = self.dataset.get_valid_file_paths()
         elif self.phase == BatchedDataLoader._TEST:
             self.data_file_paths = self.dataset.get_test_file_paths()
-        raise NotImplementedError
-
 
 class MitAde:
     def __init__(self, data_root):
@@ -128,5 +126,3 @@ class MitAde:
             test_data_filepaths_y.append(os.path.join(test_data_root_y, f))
 
         return test_data_filepaths_x, test_data_filepaths_y
-
-
