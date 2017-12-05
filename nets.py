@@ -3,6 +3,7 @@ import tensorflow as tf
 
 from arch import *
 from Trainer import *
+from TrainerOptions import *
 
 _CONV_WEIGHT_STD_DEV = 0.1
 

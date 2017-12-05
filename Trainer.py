@@ -6,17 +6,18 @@ from TrainerOptions import *
 
 class Trainer:
     def __init__(self, opt: TrainerOptions):
-        self.opt = TrainerOptions
+        self.opt = opt
 
     def train(self):
         # =================================
         # This Is Where The Sausage Is Made
         # =================================
 
-        curr_learning_rate = self.learning_rate
+        curr_learning_rate = self.opt.opt_learning_rate
         opt = self.opt
 
-        data_loader = CocoDataLoader()
+        dataset = self._get_dataset()
+        dl = BatchedDataLoader.from_data(opt.data_root).with_dataset(dataset).training().randomized()
 
         g = tf.Graph()
         with g.as_default(), g.device(opt.device), tf.Session(config=tf.ConfigProto(allow_soft_placement=True)) as sess:
@@ -34,10 +35,12 @@ class Trainer:
             x_preproc = self._preprocess_data(x)
 
             # Construct network and compute spatial logits
+            print("1. Constructing network...")
             with tf.variable_scope(opt.model_name):
                 spatial_logits = self._construct_net(x_preproc, is_training, dropout_keep_prob)
 
             # Compute losses
+            print("2. Creating losses...")
             y_squeezed = tf.squeeze(y, axis=[3])
             loss = tf.reduce_mean(
                 tf.nn.sparse_softmax_cross_entropy_with_logits(logits=spatial_logits, labels=y_squeezed))
@@ -46,6 +49,7 @@ class Trainer:
                 loss += regularizer
 
             # Create optimizer
+            print("3. Optimizing...")
             update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
             with tf.control_dependencies(update_ops):
                 optimizer = self._construct_optimizer(learning_rate)
@@ -55,7 +59,7 @@ class Trainer:
 
             it = 0
             while it < opt.opt_iterations:
-                batch_x, batch_y = data_loader.next_batch(opt.batch_size)
+                batch_x, batch_y = dl.next_batch(opt.batch_size)
                 sess.run(optimize,
                          feed_dict={
                              x: batch_x,
@@ -68,6 +72,11 @@ class Trainer:
 
     def _preprocess_data(self, x: tf.Tensor) -> tf.Tensor:
         return x
+
+    def _get_dataset(self):
+        if self.opt.dataset == 'mitade':
+            return MitAde
+        raise NotImplementedError
 
     def _construct_net(self, x: tf.Tensor, is_training, dropout_keep_prob) -> tf.Tensor:
         if self.opt.arch == 'tiramisu103':

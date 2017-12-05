@@ -31,9 +31,11 @@ def conv2d(x: tf.Tensor, ksize, stride, chan_out, border_mode='SAME', init_stdde
 
 def deconv2d(x: tf.Tensor, ksize, stride, chan_out, border_mode='SAME', init_stddev=1.0, weight_decay=None):
     x_size = utils.tensor_shape_as_list(x)
-    batch_size, height, width, chan_in = x_size
+    _, height, width, chan_in = x_size
+    batch_size = tf.shape(x)[0]
     W = initialize_weights([ksize, ksize, chan_in, chan_out], init_stddev, weight_decay)
-    return tf.nn.conv2d_transpose(x, W, [batch_size, height * stride, width * stride, chan_out], [1, stride, stride, 1],
+    output_shape = tf.stack([batch_size, height * stride, width * stride, chan_out])
+    return tf.nn.conv2d_transpose(x, W, output_shape, [1, stride, stride, 1],
                                   padding=border_mode)
 
 

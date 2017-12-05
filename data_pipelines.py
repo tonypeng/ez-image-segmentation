@@ -8,19 +8,19 @@ class BatchedDataLoader:
     _TEST = 2
 
     @classmethod
-    def from_dataset(cls, dataset):
-        return BatchedDataLoader(dataset)
+    def from_data(cls, data_root):
+        return BatchedDataLoader(data_root)
 
     def __init__(self, source):
         self.data_root = source
         self.randomize = False
         self.data_idx = None
-        self.pipeline = None
+        self.dataset = None
         self.phase = BatchedDataLoader._TRAIN
         self.data_file_paths = None
 
-    def with_pipeline(self, pipeline):
-        self.pipeline = pipeline(self.data_root)
+    def with_dataset(self, dataset):
+        self.dataset = dataset(self.data_root)
         return self
 
     def randomized(self):
@@ -57,11 +57,11 @@ class BatchedDataLoader:
 
     def _initialize_dataset(self):
         if self.phase == BatchedDataLoader._TRAIN:
-            self.data_file_paths = self.pipeline.get_train_file_paths()
+            self.data_file_paths = self.dataset.get_train_file_paths()
         elif self.phase == BatchedDataLoader._VALID:
-            self.data_file_paths = self.pipeline.get_valid_file_paths()
+            self.data_file_paths = self.dataset.get_valid_file_paths()
         elif self.phase == BatchedDataLoader._TEST:
-            self.data_file_paths = self.pipeline.get_test_file_paths()
+            self.data_file_paths = self.dataset.get_test_file_paths()
         raise NotImplementedError
 
 
