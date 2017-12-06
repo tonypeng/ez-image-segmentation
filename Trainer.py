@@ -25,7 +25,7 @@ class Trainer:
 
         g = tf.Graph()
         with g.as_default(), g.device(opt.device), tf.Session(config=tf.ConfigProto(allow_soft_placement=True)) as sess:
-            phase = tf.placeholder(tf.string, name='phase')
+            phase = tf.placeholder(tf.int32, name='phase')
             is_training = tf.equal(phase, Phases.TRAINING)
 
             # Create data loader
@@ -58,7 +58,7 @@ class Trainer:
 
             # Compute losses
             print("3. Setting up losses...")
-            y_flattened = tf.reshape(y, (-1))
+            y_flattened = tf.squeeze(tf.reshape(y, (-1, 1)), axis=[1])
             loss = tf.reduce_mean(
                 tf.nn.sparse_softmax_cross_entropy_with_logits(logits=flattened_logits, labels=y_flattened))
             if opt.opt_weight_decay is not None:
@@ -113,7 +113,7 @@ class Trainer:
                     utils.write_image(pc,
                                       utils.get_preview_file_path(opt.preview_images_path, 'predicted', str(it), 'png'))
 
-                    # adjust loss if we need to                                                                                                                                                                                        │··············
+                    # adjust loss if we need to
                     if self._should_adjust_learning_rate(curr_val_loss) and curr_learning_rate > 5e-5:
                         print("Dropping learning rate from: " + str(curr_learning_rate))
                         curr_learning_rate = curr_learning_rate / opt.loss_adjustment_factor

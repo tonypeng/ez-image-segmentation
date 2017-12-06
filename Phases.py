@@ -1,3 +1,3 @@
-TRAINING = 'training'
-VALIDATING = 'validating'
-TESTING = 'testing'
+TRAINING = 0
+VALIDATING = 1
+TESTING = 2
