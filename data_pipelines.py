@@ -110,5 +110,5 @@ class Ade20kPreprocessingStage:
         self.resize_image_height = resize_image_height
 
     def apply(self, image, label):
-        return ade20k_pre.preprocess_image(image, self.resize_image_height, self.resize_image_width, label=label,
-                                           is_training=self.is_training)
+        return ade20k_pre.preprocess_image(image, self.is_training, self.resize_image_height, self.resize_image_width,
+                                           label=label)
