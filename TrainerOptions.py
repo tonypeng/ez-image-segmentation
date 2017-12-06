@@ -53,6 +53,7 @@ class TrainerOptions:
         parser.add_argument('--loss_adjustment_sample_interval', type=int, default=15)
         parser.add_argument('--loss_adjustment_factor', type=float, default=2.)
         parser.add_argument('--loss_adjustment_coin_flip_prob', type=float, default=1.0)
+        parser.add_argument('--loss_adjustment_min_epochs', type=int, default=5)
         parser.add_argument('--num_readers', type=int, default=4)
         parser.add_argument('--num_preprocessing_threads', type=int, default=4)
         self.options = vars(parser.parse_args())

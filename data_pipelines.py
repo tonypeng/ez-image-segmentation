@@ -90,6 +90,10 @@ class Ade20kTfRecords:
     def num_classes(cls):
         return ade20k._NUM_CLASSES
 
+    @classmethod
+    def num_training_samples(cls):
+        return ade20k.SPLITS_TO_SIZES['training']
+
     def __init__(self, data_root):
         self.data_root = os.path.join(data_root, 'ade20k', 'records')
 

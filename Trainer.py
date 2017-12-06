@@ -90,6 +90,8 @@ class Trainer:
             # Checkpointing
             saver = tf.train.Saver(max_to_keep=5)
             it = 0
+            processed_samples = 0
+            last_loss_change_processed_samples = 0
             if len(opt.checkpoint_name) > 1:
                 saver.restore(sess, opt.checkpoint_name)
                 it = opt.start_from_iteration
@@ -107,10 +109,13 @@ class Trainer:
 
                 print("Iteration " + str(it) + ": Loss=" + str(train_loss) + "; Acc=" + str(train_acc * 100.) + "%")
 
+                processed_samples += opt.batch_size
+
                 # Compute validation loss
                 if it % opt.val_loss_iter_print == 0:
                     curr_val_loss, val_loss_summ, learning_rate_summ, val_x, yc, pc, val_acc, val_acc_summ = sess.run(
-                        [loss, loss_valid_summary, learning_rate_summary, x, y_color, pred_color, acc_per_pixel, acc_valid_summary],
+                        [loss, loss_valid_summary, learning_rate_summary, x, y_color, pred_color, acc_per_pixel,
+                         acc_valid_summary],
                         feed_dict={
                             learning_rate: curr_learning_rate,
                             phase: Phases.VALIDATING,
@@ -125,16 +130,21 @@ class Trainer:
                                       utils.get_preview_file_path(opt.preview_images_path, 'predicted', str(it), 'png'))
 
                     # adjust loss if we need to
-                    if self._should_adjust_learning_rate(curr_val_loss) and curr_learning_rate > 5e-5:
+                    if (self._should_adjust_learning_rate(curr_val_loss)
+                        and curr_learning_rate > opt.opt_min_learning_rate
+                        and (processed_samples - last_loss_change_processed_samples)
+                            >= dataset.num_training_samples() * opt.loss_adjustment_min_epochs):
                         print("Dropping learning rate from: " + str(curr_learning_rate))
                         curr_learning_rate = curr_learning_rate / opt.loss_adjustment_factor
                         curr_learning_rate = max(curr_learning_rate, opt.opt_min_learning_rate)
                         print("                       to: " + str(curr_learning_rate))
+                        last_loss_change_processed_samples = processed_samples
                     writer.add_summary(val_loss_summ, it)
                     writer.add_summary(learning_rate_summ, it)
                     writer.add_summary(acc_valid_summary, it)
 
-                    print("Iteration " + str(it) + ": Val Loss=" + str(curr_val_loss) + "; Acc=" + str(val_acc * 100.) + "%")
+                    print("Iteration " + str(it) + ": Val Loss=" + str(curr_val_loss) + "; Acc=" + str(
+                        val_acc * 100.) + "%")
 
                 # Save the model
                 if it % opt.checkpoint_iterations == 0:
