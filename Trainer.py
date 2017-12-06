@@ -69,6 +69,7 @@ class Trainer:
 
             # # Create batch of items.
             x, y = q.dequeue()
+            y_color = utils.colorize(y[0,:,:,:], vmin=0, vmax=150, cmap='viridis')
 
             # x = tf.placeholder(tf.float32, [None, opt.image_height, opt.image_width, 3])
             # y = tf.placeholder(tf.int64, [None, opt.image_height, opt.image_width, 1])
@@ -80,6 +81,7 @@ class Trainer:
             with tf.variable_scope(opt.model_name):
                 spatial_logits = self._construct_net(x, is_training)
             pred = tf.argmax(spatial_logits[0,:,:,:], axis=2)
+            pred_color = utils.colorize(pred, vmin=0, vmax=150, cmap='viridis')
 
             # Compute losses
             print("2. Creating losses...")
@@ -113,7 +115,8 @@ class Trainer:
             learning_rate_summary = tf.summary.scalar('learning_rate', learning_rate)
             loss_training_summary = tf.summary.scalar('loss_training', loss)
             loss_valid_summary = tf.summary.scalar('loss_validation', loss)
-            writer = tf.summary.FileWriter(os.path.join(opt.log_path, opt.model_name), graph=tf.get_default_graph())
+            writer = tf.summary.FileWriter(os.path.join(opt.log_path, opt.model_name))
+            writer.add_graph(sess.graph)
 
             # Checkpointing
             print("4. Saving at " + path_save + "...")
@@ -132,14 +135,14 @@ class Trainer:
 
                 # Compute validation loss
                 if it % opt.val_loss_iter_print == 0:
-                    curr_val_loss, val_loss_summ, learning_rate_summ, val_x, val_y, val_p = sess.run([loss, loss_valid_summary, learning_rate_summary, x, y, pred],
+                    curr_val_loss, val_loss_summ, learning_rate_summ, val_x, yc, pc = sess.run([loss, loss_valid_summary, learning_rate_summary, x, y_color, pred_color],
                                             feed_dict={
                                                 learning_rate: curr_learning_rate,
                                                 is_training: False})
                     utils.write_image(val_x[0],'imgs/x'+str(it)+'.png')
-                    utils.write_image(val_y[0,:,:,0],'imgs/y'+str(it)+'.png', False)
-                    utils.write_image(val_p,'imgs/p'+str(it)+'.png', False)
-
+                    # utils.write_image(val_y[0,:,:,0],'imgs/y'+str(it)+'.png', False)
+                    utils.write_image(yc,'imgs/y'+str(it)+'.png')
+                    utils.write_image(pc,'imgs/p'+str(it)+'.png')
 
                     # adjust loss if we need to                                                                                                                                                                                        │··············
                     if self._should_adjust_learning_rate(curr_val_loss) and curr_learning_rate > 5e-5:
@@ -150,7 +153,7 @@ class Trainer:
                     writer.add_summary(val_loss_summ, it)
                     writer.add_summary(learning_rate_summ, it)
 
-                    print("Iteration " + str(it + 1) + ": Val Loss=" + str(curr_val_loss))
+                    print("Iteration " + str(it) + ": Val Loss=" + str(curr_val_loss))
 
                 # Compute training loss
                 if it % opt.train_loss_iter_print == 0:
@@ -160,10 +163,10 @@ class Trainer:
                                                         is_training: False})
                     writer.add_summary(loss_summ, it)
 
-                    print("Iteration " + str(it + 1) + ": Loss=" + str(curr_loss))
+                    print("Iteration " + str(it) + ": Loss=" + str(curr_loss))
 
                 # Save the model
-                if it % opt.checkpoint_iterations == opt.checkpoint_iterations-1:
+                if it % opt.checkpoint_iterations == 0:
                     saver.save(sess, path_save, global_step=it)
                     print("Model saved at Iter %d !" %(it))
                 it += 1
