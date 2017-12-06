@@ -38,7 +38,7 @@ class Trainer:
                   .batch_size(opt.batch_size)
                   .num_readers(opt.num_readers)
                   .num_preprocessing_threads(opt.num_preprocessing_threads)
-                  .pipeline_stage(Ade20kPreprocessingStage(is_training, opt.image_width, opt.image_height))
+                  .pipeline_stage(Ade20kPreprocessingStage(opt.image_width, opt.image_height))
                   )
 
             # Hyperparameters

@@ -56,9 +56,9 @@ class ParallelizedBatchedDataLoader:
         return self._queue.dequeue()
 
     def _initialize_queue(self):
-        train_queue = self._create_queue_from(self.dataset.get_train_data())
-        val_queue = self._create_queue_from(self.dataset.get_validation_data())
-        test_queue = self._create_queue_from(self.dataset.get_test_data())
+        train_queue = self._create_queue_from(self.dataset.get_train_data(), True)
+        val_queue = self._create_queue_from(self.dataset.get_validation_data(), False)
+        test_queue = self._create_queue_from(self.dataset.get_test_data(), False)
         queues = [train_queue, val_queue, test_queue]
         selector = tf.case({
             tf.equal(self._phase, Phases.TRAINING): lambda: tf.constant(0),
@@ -67,7 +67,7 @@ class ParallelizedBatchedDataLoader:
         })
         self._queue = tf.QueueBase.from_list(selector, queues)
 
-    def _create_queue_from(self, data):
+    def _create_queue_from(self, data, is_training):
         provider = slim.dataset_data_provider.DatasetDataProvider(
             data,
             num_readers=self._num_readers,
@@ -75,7 +75,7 @@ class ParallelizedBatchedDataLoader:
             common_queue_min=10 * self._batch_size)
         [image, label] = provider.get(['image', 'label'])
         for stage in self._pipeline_stages:
-            image, label = stage.apply(image, label)
+            image, label = stage.apply(image, label, is_training)
 
         images, labels = tf.train.batch(
             [image, label],
@@ -104,11 +104,10 @@ class Ade20kTfRecords:
         return ade20k.get_split('validation', self.data_root)
 
 class Ade20kPreprocessingStage:
-    def __init__(self, is_training, resize_image_width, resize_image_height):
-        self.is_training = is_training
+    def __init__(self, resize_image_width, resize_image_height):
         self.resize_image_width = resize_image_width
         self.resize_image_height = resize_image_height
 
-    def apply(self, image, label):
-        return ade20k_pre.preprocess_image(image, self.is_training, self.resize_image_height, self.resize_image_width,
-                                           label=label)
+    def apply(self, image, label, is_training):
+        return ade20k_pre.preprocess_image(image, self.resize_image_height, self.resize_image_width,
+                                           label=label, is_training=is_training)

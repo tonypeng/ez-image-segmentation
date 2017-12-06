@@ -29,7 +29,7 @@ class TrainerOptions:
         parser.add_argument('--device', type=str, default='/gpu:0')
         parser.add_argument('--optimizer', type=str, default='rmsprop')
         parser.add_argument('--dataset', type=str, default='ade20k')
-        parser.add_argument('--preview_images_path', type=str, default='img')
+        parser.add_argument('--preview_images_path', type=str, default='imgs')
         parser.add_argument('--batch_size', type=int, default=32)
         parser.add_argument('--arch_first_conv_features', type=int, default=48)
         parser.add_argument('--arch_activation', type=str, default='relu')
