@@ -14,6 +14,8 @@ def read_image(path, mode='RGB', size=None):
     return img
 
 
-def write_image(img, path):
+def write_image(img, path, rescale=True):
+    if rescale:
+        img = img*255.
     img = np.clip(img, 0, 255).astype(np.uint8)
     scipy.misc.imsave(path, img)

@@ -1,5 +1,7 @@
 import nets
 import tensorflow as tf
+import utils
+import random
 slim = tf.contrib.slim
 
 from data_pipelines import *
@@ -7,11 +9,10 @@ from TrainerOptions import *
 import preprocessor as pre
 import ade20k
 
-num_classes=150
-
 class Trainer:
     def __init__(self, opt: TrainerOptions):
         self.opt = opt
+        self.loss_history = []
 
     def train(self):
         # =================================
@@ -35,7 +36,7 @@ class Trainer:
         #       )
 
         # Path to save checkpoint files
-        path_save = './checkpoints/'+opt.model_name+'/'
+        path_save = 'checkpoints/'+opt.model_name+'/'
 
         g = tf.Graph()
         with g.as_default(), g.device(opt.device), tf.Session(config=tf.ConfigProto(allow_soft_placement=True)) as sess:
@@ -68,7 +69,6 @@ class Trainer:
 
             # # Create batch of items.
             x, y = q.dequeue()
-            print(y)
 
             # x = tf.placeholder(tf.float32, [None, opt.image_height, opt.image_width, 3])
             # y = tf.placeholder(tf.int64, [None, opt.image_height, opt.image_width, 1])
@@ -79,12 +79,20 @@ class Trainer:
             print("1. Constructing network...")
             with tf.variable_scope(opt.model_name):
                 spatial_logits = self._construct_net(x, is_training)
+            pred = tf.argmax(spatial_logits[0,:,:,:], axis=2)
 
             # Compute losses
             print("2. Creating losses...")
-            y_squeezed = tf.squeeze(y, axis=[3])
-            loss = tf.reduce_mean(
-                tf.nn.sparse_softmax_cross_entropy_with_logits(logits=spatial_logits, labels=y_squeezed))
+            # y_squeezed = tf.squeeze(y, axis=[3])
+            labels = slim.one_hot_encoding(y, self.opt.num_classes)
+            labels = tf.reshape(labels, spatial_logits.get_shape())
+            loss = slim.losses.softmax_cross_entropy(spatial_logits, labels)
+            # loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=spatial_logits, labels=y_squeezed))
+            # print(y.shape)
+            # y_squeezed = tf.squeeze(y, axis=[3])
+            # print(y_squeezed.shape)
+            # loss = tf.reduce_mean(
+            #     tf.nn.sparse_softmax_cross_entropy_with_logits(logits=spatial_logits, labels=y_squeezed))
             if opt.opt_weight_decay is not None:
                 regularizer = tf.add_n(tf.get_collection('weight_regularizers'))
                 loss += regularizer
@@ -96,6 +104,8 @@ class Trainer:
                 optimizer = self._construct_optimizer(learning_rate)
                 optimize = optimizer.minimize(loss)
 
+            coord = tf.train.Coordinator()
+            threads = tf.train.start_queue_runners(sess=sess, coord=coord)
             sess.run(tf.global_variables_initializer())
 
             # Tensorboard summary for meta-params
@@ -114,26 +124,28 @@ class Trainer:
                 it = opt.start_from_iteration
 
             while it < opt.opt_iterations:
-                raise('oh no')
-                sess.run(optimize,
+                _, batch_x, batch_y = sess.run([optimize, x, y],
                          feed_dict={
                              learning_rate: curr_learning_rate,
                              is_training: True,
                          })
-                print(it)
 
                 # Compute validation loss
                 if it % opt.val_loss_iter_print == 0:
-                    curr_val_loss, val_loss_summ, learning_rate_summ = sess.run([loss, loss_valid_summary, learning_rate_summary],
+                    curr_val_loss, val_loss_summ, learning_rate_summ, val_x, val_y, val_p = sess.run([loss, loss_valid_summary, learning_rate_summary, x, y, pred],
                                             feed_dict={
                                                 learning_rate: curr_learning_rate,
                                                 is_training: False})
+                    utils.write_image(val_x[0],'imgs/x'+str(it)+'.png')
+                    utils.write_image(val_y[0,:,:,0],'imgs/y'+str(it)+'.png', False)
+                    utils.write_image(val_p,'imgs/p'+str(it)+'.png', False)
+
 
                     # adjust loss if we need to                                                                                                                                                                                        │··············
-                    if opt._should_adjust_learning_rate(curr_val_loss) and curr_learning_rate > 5e-5:
+                    if self._should_adjust_learning_rate(curr_val_loss) and curr_learning_rate > 5e-5:
                         print ("Dropping learning rate from: " + str(curr_learning_rate))
                         curr_learning_rate = curr_learning_rate/opt.loss_adjustment_factor
-                        curr_learning_rate = max(curr_learning_rate, opt.min_learning_rate)
+                        curr_learning_rate = max(curr_learning_rate, opt.opt_min_learning_rate)
                         print ("                       to: " + str(curr_learning_rate))
                     writer.add_summary(val_loss_summ, it)
                     writer.add_summary(learning_rate_summ, it)
@@ -151,13 +163,16 @@ class Trainer:
                     print("Iteration " + str(it + 1) + ": Loss=" + str(curr_loss))
 
                 # Save the model
-                if it % opt.checkpoint_iterations == 0:
+                if it % opt.checkpoint_iterations == opt.checkpoint_iterations-1:
                     saver.save(sess, path_save, global_step=it)
                     print("Model saved at Iter %d !" %(it))
                 it += 1
+            coord.join(threads)
+            sess.close()
 
-    def _preprocess_data(self, x: tf.Tensor) -> tf.Tensor:
-        return x
+
+    # def _preprocess_data(self, x: tf.Tensor) -> tf.Tensor:
+    #     return x
 
     def _get_dataset(self):
         if self.opt.dataset == 'mitade':
@@ -191,3 +206,14 @@ class Trainer:
             num_threads=self.opt.num_preprocessing_threads,
             capacity=5 * self.opt.batch_size)
         return slim.prefetch_queue.prefetch_queue([images, labels], capacity=2)
+
+    def _should_adjust_learning_rate(self, val_loss):
+        self.loss_history.append(val_loss)
+        if len(self.loss_history) > 3*self.opt.loss_adjustment_sample_interval:
+            self.loss_history.pop(0)
+            old_loss = sum(self.loss_history[:self.opt.loss_adjustment_sample_interval])/self.opt.loss_adjustment_sample_interval
+            recent_loss = sum(self.loss_history[2*self.opt.loss_adjustment_sample_interval:])/self.opt.loss_adjustment_sample_interval
+            if recent_loss > old_loss:
+                self.loss_history = []
+                return random.uniform(0, 1) < self.opt.loss_adjustment_coin_flip_prob
+        return False

@@ -3,9 +3,9 @@
 !/data/coco/.gitkeep
 !/data/mitade/.gitkeep
 /data/ade20k/*
-download_and_convert_data.py
-download_and_convert_ade20k.py
 /logs
+/imgs
+/checkpoints
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
