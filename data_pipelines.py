@@ -50,10 +50,10 @@ class ParallelizedBatchedDataLoader:
         return self
 
     def next_batch(self):
-        if self.queue is None:
+        if self._queue is None:
             self._initialize_queue()
 
-        return self.queue.dequeue()
+        return self._queue.dequeue()
 
     def _initialize_queue(self):
         train_queue = self._create_queue_from(self.dataset.get_train_data())
@@ -65,7 +65,7 @@ class ParallelizedBatchedDataLoader:
             tf.equal(self.phase, Phases.VALIDATING): lambda: tf.constant(1),
             tf.equal(self.phase, Phases.TESTING): lambda: tf.constant(2),
         })
-        self.queue = tf.QueueBase.from_list(selector, queues)
+        self._queue = tf.QueueBase.from_list(selector, queues)
 
     def _create_queue_from(self, data):
         provider = slim.dataset_data_provider.DatasetDataProvider(
