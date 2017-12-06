@@ -1,4 +1,5 @@
 import numpy as np
+import os
 import scipy
 import matplotlib
 import matplotlib.pyplot as plt
@@ -22,6 +23,7 @@ def write_image(img, path, rescale=True):
     img = np.clip(img, 0, 255).astype(np.uint8)
     scipy.misc.imsave(path, img)
 
+
 def colorize(value, vmin=None, vmax=None, cmap=None):
     # normalize
     vmin = tf.reduce_min(value) if vmin is None else vmin
@@ -42,3 +44,7 @@ def colorize(value, vmin=None, vmax=None, cmap=None):
     value = tf.gather(colors, indices)
 
     return value
+
+
+def get_preview_file_path(root, prefix, suffix, ext):
+    return os.path.join(root, prefix + '_' + suffix + '.' + ext)

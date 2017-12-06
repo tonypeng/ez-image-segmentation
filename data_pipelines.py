@@ -1,128 +1,114 @@
+import libs.ade20k as ade20k
+import libs.preprocessor as ade20k_pre
 import numpy as np
 import os
+import Phases
+import tensorflow as tf
 import utils
 from random import shuffle
 
+slim = tf.contrib.slim
 
-class BatchedDataLoader:
-    _TRAIN = 0
-    _VALID = 1
-    _TEST = 2
 
+class ParallelizedBatchedDataLoader:
     @classmethod
-    def from_data(cls, data_root):
-        return BatchedDataLoader(data_root)
+    def from_data_root(cls, data_root) -> 'ParallelizedBatchedDataLoader':
+        return ParallelizedBatchedDataLoader(data_root)
 
     def __init__(self, source):
         self.data_root = source
-        self.randomize = False
-        self.data_idx = None
         self.dataset = None
-        self.image_width = None
-        self.image_height = None
-        self.phase = BatchedDataLoader._TRAIN
-        self.data_file_paths = None
+        self._queue = None
+        self._phase = None
+        self._batch_size = None
+        self._num_readers = None
+        self._num_preproc_threads = None
+        self._pipeline_stages = []
 
-    def with_dataset(self, dataset):
+    def with_dataset(self, dataset) -> 'ParallelizedBatchedDataLoader':
         self.dataset = dataset(self.data_root)
         return self
 
-    def randomized(self):
-        self.randomize = True
+    def phase(self, phase) -> 'ParallelizedBatchedDataLoader':
+        self._phase = phase
         return self
 
-    def image_dimensions(self, width, height):
-        self.image_width = width
-        self.image_height = height
+    def batch_size(self, size) -> 'ParallelizedBatchedDataLoader':
+        self._batch_size = size
         return self
 
-    def training(self):
-        self.phase = BatchedDataLoader._TRAIN
+    def num_readers(self, num) -> 'ParallelizedBatchedDataLoader':
+        self._num_readers = num
         return self
 
-    def validation(self):
-        self.phase = BatchedDataLoader._VALID
+    def num_preprocessing_threads(self, num) -> 'ParallelizedBatchedDataLoader':
+        self._num_preproc_threads = num
         return self
 
-    def testing(self):
-        self.phase = BatchedDataLoader._TEST
+    def pipeline_stage(self, stage) -> 'ParallelizedBatchedDataLoader':
+        self._pipeline_stages.append(stage)
         return self
 
-    def next_batch(self, n):
-        if self.data_idx is None:
-            self._initialize_dataset()
+    def next_batch(self):
+        if self.queue is None:
+            self._initialize_queue()
 
-        batch_x = [None] * n
-        batch_y = [None] * n
+        return self.queue.dequeue()
 
-        for i in range(n):
-            batch_x_file_path, batch_y_file_path = self.data_file_paths[self.data_idx]
-            x = utils.read_image(batch_x_file_path, size=(self.image_height, self.image_width))
-            batch_x[i] = x.astype(np.float32) / 255. - self.dataset.get_data_mean()
-            batch_y[i] = utils.read_image(batch_y_file_path,
-                                          mode='I', size=(self.image_height, self.image_width)).astype('int32')
+    def _initialize_queue(self):
+        train_queue = self._create_queue_from(self.dataset.get_train_data())
+        val_queue = self._create_queue_from(self.dataset.get_validation_data())
+        test_queue = self._create_queue_from(self.dataset.get_test_data())
+        queues = [train_queue, val_queue, test_queue]
+        selector = tf.case({
+            tf.equal(self.phase, Phases.TRAINING): lambda: tf.constant(0),
+            tf.equal(self.phase, Phases.VALIDATING): lambda: tf.constant(1),
+            tf.equal(self.phase, Phases.TESTING): lambda: tf.constant(2),
+        })
+        self.queue = tf.QueueBase.from_list(selector, queues)
 
-            self.data_idx += 1
-            if self.data_idx == len(self.data_file_paths):
-                self.data_idx = 0
-                shuffle(self.data_file_paths)
+    def _create_queue_from(self, data):
+        provider = slim.dataset_data_provider.DatasetDataProvider(
+            data,
+            num_readers=self._num_readers,
+            common_queue_capacity=20 * self._batch_size,
+            common_queue_min=10 * self._batch_size)
+        [image, label] = provider.get(['image', 'label'])
+        for stage in self._pipeline_stages:
+            image, label = stage.apply(image, label)
 
-        return batch_x, batch_y
+        images, labels = tf.train.batch(
+            [image, label],
+            batch_size=self._batch_size,
+            num_threads=self._num_preproc_threads,
+            capacity=5 * self._batch_size)
+        return slim.prefetch_queue.prefetch_queue([images, labels], capacity=2)
 
-    def _initialize_dataset(self):
-        if self.phase == BatchedDataLoader._TRAIN:
-            self.data_file_paths = self.dataset.get_train_file_paths()
-        elif self.phase == BatchedDataLoader._VALID:
-            self.data_file_paths = self.dataset.get_valid_file_paths()
-        elif self.phase == BatchedDataLoader._TEST:
-            self.data_file_paths = self.dataset.get_test_file_paths()
 
-class MitAde:
+class Ade20kTfRecords:
+    @classmethod
+    def num_classes(cls):
+        return ade20k._NUM_CLASSES
+
     def __init__(self, data_root):
-        self.data_root = os.path.join(data_root, 'mitade')
-        self.data_mean = np.array([124.6901 / 255., 118.6897 / 255., 109.5388 / 255.])
+        self.data_root = os.path.join(data_root, 'ade20k', 'records')
 
-    def get_data_mean(self):
-        return self.data_mean
+    def get_train_data(self):
+        return ade20k.get_split('training', self.data_root)
 
-    def get_train_file_paths(self):
-        train_data_root_x = os.path.join(self.data_root, 'images', 'training')
-        train_data_root_y = os.path.join(self.data_root, 'annotations', 'training')
-        train_data_filepaths_x = []
-        train_data_filepaths_y = []
-        for f in os.listdir(train_data_root_x):
-            if not os.path.exists(os.path.join(train_data_root_y, f)):
-                print("Warning: Annotation doesn't exist for file ", f, ".")
-                continue
-            train_data_filepaths_x.append(os.path.join(train_data_root_x, f))
-            train_data_filepaths_y.append(os.path.join(train_data_root_y, f))
+    def get_validation_data(self):
+        return ade20k.get_split('validation', self.data_root)
 
-        return train_data_filepaths_x, train_data_filepaths_y
+    def get_test_data(self):
+        # TODO: replace with actual test data
+        return ade20k.get_split('validation', self.data_root)
 
-    def get_valid_file_paths(self):
-        valid_data_root_x = os.path.join(self.data_root, 'images', 'validation')
-        valid_data_root_y = os.path.join(self.data_root, 'annotations', 'validation')
-        valid_data_filepaths_x = []
-        valid_data_filepaths_y = []
-        for f in os.listdir(valid_data_root_x):
-            if not os.path.exists(os.path.join(valid_data_root_y, f)):
-                print("Warning: Annotation doesn't exist for file ", f, ".")
-                continue
-            valid_data_filepaths_x.append(os.path.join(valid_data_root_x, f))
-            valid_data_filepaths_y.append(os.path.join(valid_data_root_y, f))
+class Ade20kPreprocessingStage:
+    def __init__(self, is_training, resize_image_width, resize_image_height):
+        self.is_training = is_training
+        self.resize_image_width = resize_image_width
+        self.resize_image_height = resize_image_height
 
-        return valid_data_filepaths_x, valid_data_filepaths_y
-
-    def get_test_file_paths(self):
-        test_data_root_x = os.path.join(self.data_root, 'images', 'test')
-        test_data_root_y = os.path.join(self.data_root, 'annotations', 'test')
-        test_data_filepaths_x = []
-        test_data_filepaths_y = []
-        for f in os.listdir(test_data_root_x):
-            if not os.path.exists(os.path.join(test_data_root_y, f)):
-                print("Warning: Annotation doesn't exist for file ", f, ".")
-                continue
-            test_data_filepaths_x.append(os.path.join(test_data_root_x, f))
-            test_data_filepaths_y.append(os.path.join(test_data_root_y, f))
-
-        return test_data_filepaths_x, test_data_filepaths_y
+    def apply(self, image, label):
+        return ade20k_pre.preprocess_image(image, self.resize_image_height, self.resize_image_width, label=label,
+                                           is_training=self.is_training)
