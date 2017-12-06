@@ -1,6 +1,7 @@
 import nets
 import Phases
 import random
+from SegmentationColorizer import *
 import tensorflow as tf
 
 from data_pipelines import *
@@ -46,14 +47,15 @@ class Trainer:
 
             # Input / annotations
             x, y = dl.next_batch()
-            y_color = utils.colorize(y[0], vmin=0, vmax=dataset.num_classes(), cmap='viridis')
+            colorizer = SegmentationColorizer(0, dataset.num_classes(), opt.colorizer_map)
+            y0_color = colorizer.colorize(y[0])
 
             # Construct network and compute spatial logits
             print("2. Constructing network...")
             with tf.variable_scope(opt.model_name):
                 spatial_logits = self._construct_net(x, is_training)
             preds = tf.argmax(spatial_logits, axis=3)
-            pred_color = utils.colorize(preds[0], vmin=0, vmax=dataset.num_classes(), cmap='viridis')
+            pred0_color = colorizer.colorize(preds[0])
 
             # Compute losses
             print("3. Setting up losses and accuracies...")
@@ -114,7 +116,7 @@ class Trainer:
                 # Compute validation loss
                 if it % opt.val_loss_iter_print == 0:
                     curr_val_loss, val_loss_summ, learning_rate_summ, val_x, yc, pc, val_acc, val_acc_summ = sess.run(
-                        [loss, loss_valid_summary, learning_rate_summary, x, y_color, pred_color, acc_per_pixel,
+                        [loss, loss_valid_summary, learning_rate_summary, x, y0_color, pred0_color, acc_per_pixel,
                          acc_valid_summary],
                         feed_dict={
                             learning_rate: curr_learning_rate,
