@@ -61,9 +61,9 @@ class ParallelizedBatchedDataLoader:
         test_queue = self._create_queue_from(self.dataset.get_test_data())
         queues = [train_queue, val_queue, test_queue]
         selector = tf.case({
-            tf.equal(self.phase, Phases.TRAINING): lambda: tf.constant(0),
-            tf.equal(self.phase, Phases.VALIDATING): lambda: tf.constant(1),
-            tf.equal(self.phase, Phases.TESTING): lambda: tf.constant(2),
+            tf.equal(self._phase, Phases.TRAINING): lambda: tf.constant(0),
+            tf.equal(self._phase, Phases.VALIDATING): lambda: tf.constant(1),
+            tf.equal(self._phase, Phases.TESTING): lambda: tf.constant(2),
         })
         self._queue = tf.QueueBase.from_list(selector, queues)
 
