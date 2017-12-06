@@ -6,6 +6,7 @@ import tensorflow as tf
 from data_pipelines import *
 from TrainerOptions import *
 
+slim = tf.contrib.slim
 
 class Trainer:
     def __init__(self, opt: TrainerOptions):
@@ -59,8 +60,11 @@ class Trainer:
             # Compute losses
             print("3. Setting up losses...")
             y_flattened = tf.squeeze(tf.reshape(y, (-1, 1)), axis=[1])
-            loss = tf.reduce_mean(
-                tf.nn.sparse_softmax_cross_entropy_with_logits(logits=flattened_logits, labels=y_flattened))
+            # loss = tf.reduce_mean(
+            #     tf.nn.sparse_softmax_cross_entropy_with_logits(logits=flattened_logits, labels=y_flattened))
+            labels = slim.one_hot_encoding(y, dataset.num_classes())
+            labels = tf.reshape(labels, spatial_logits.get_shape())
+            loss = slim.losses.softmax_cross_entropy(spatial_logits, labels)
             if opt.opt_weight_decay is not None:
                 regularizer = tf.add_n(tf.get_collection('weight_regularizers'))
                 loss += regularizer
