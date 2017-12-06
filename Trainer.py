@@ -56,7 +56,7 @@ class Trainer:
             pred_color = utils.colorize(preds[0], vmin=0, vmax=dataset.num_classes(), cmap='viridis')
 
             # Compute losses
-            print("3. Setting up losses...")
+            print("3. Setting up losses and accuracies...")
             y_one_hot = tf.one_hot(y, dataset.num_classes())
             y_one_hot = tf.reshape(y_one_hot, spatial_logits.get_shape())
             loss = tf.reduce_mean(
@@ -64,6 +64,8 @@ class Trainer:
             if opt.opt_weight_decay is not None:
                 regularizer = tf.add_n(tf.get_collection('weight_regularizers'))
                 loss += regularizer
+
+            acc_per_pixel = tf.reduce_mean(tf.cast(tf.equal(preds, y), tf.float32))
 
             # Create optimizer
             print("4. Optimizing...")
@@ -80,6 +82,8 @@ class Trainer:
             learning_rate_summary = tf.summary.scalar('learning_rate', learning_rate)
             loss_training_summary = tf.summary.scalar('loss_training', loss)
             loss_valid_summary = tf.summary.scalar('loss_validation', loss)
+            acc_training_summary = tf.summary.scalar('acc_training', acc_per_pixel)
+            acc_valid_summary = tf.summary.scalar('acc_validation', acc_per_pixel)
             writer = tf.summary.FileWriter(os.path.join(opt.log_path, opt.model_name))
             writer.add_graph(sess.graph)
 
@@ -91,17 +95,22 @@ class Trainer:
                 it = opt.start_from_iteration
 
             while it < opt.opt_iterations:
-                sess.run(optimize,
-                         feed_dict={
-                             learning_rate: curr_learning_rate,
-                             phase: Phases.TRAINING,
-                             is_training: True
-                         })
+                _, train_loss, train_loss_summ, train_acc, train_acc_summ = sess.run(
+                    [optimize, loss, loss_training_summary, acc_per_pixel, acc_training_summary],
+                    feed_dict={
+                        learning_rate: curr_learning_rate,
+                        phase: Phases.TRAINING,
+                        is_training: True
+                    })
+                writer.add_summary(train_loss_summ, it)
+                writer.add_summary(train_acc_summ, it)
+
+                print("Iteration " + str(it) + ": Loss=" + str(train_loss) + "; Acc=" + str(train_acc * 100.) + "%")
 
                 # Compute validation loss
                 if it % opt.val_loss_iter_print == 0:
-                    curr_val_loss, val_loss_summ, learning_rate_summ, val_x, yc, pc = sess.run(
-                        [loss, loss_valid_summary, learning_rate_summary, x, y_color, pred_color],
+                    curr_val_loss, val_loss_summ, learning_rate_summ, val_x, yc, pc, val_acc, val_acc_summ = sess.run(
+                        [loss, loss_valid_summary, learning_rate_summary, x, y_color, pred_color, acc_per_pixel, acc_valid_summary],
                         feed_dict={
                             learning_rate: curr_learning_rate,
                             phase: Phases.VALIDATING,
@@ -123,19 +132,9 @@ class Trainer:
                         print("                       to: " + str(curr_learning_rate))
                     writer.add_summary(val_loss_summ, it)
                     writer.add_summary(learning_rate_summ, it)
+                    writer.add_summary(acc_valid_summary, it)
 
-                    print("Iteration " + str(it) + ": Val Loss=" + str(curr_val_loss))
-
-                # Compute training loss
-                if it % opt.train_loss_iter_print == 0:
-                    curr_loss, loss_summ = sess.run([loss, loss_training_summary],
-                                                    feed_dict={
-                                                        learning_rate: curr_learning_rate,
-                                                        phase: Phases.VALIDATING,
-                                                        is_training: False})
-                    writer.add_summary(loss_summ, it)
-
-                    print("Iteration " + str(it) + ": Loss=" + str(curr_loss))
+                    print("Iteration " + str(it) + ": Val Loss=" + str(curr_val_loss) + "; Acc=" + str(val_acc * 100.) + "%")
 
                 # Save the model
                 if it % opt.checkpoint_iterations == 0:
