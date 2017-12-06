@@ -67,7 +67,7 @@ class Trainer:
                 regularizer = tf.add_n(tf.get_collection('weight_regularizers'))
                 loss += regularizer
 
-            acc_per_pixel = tf.reduce_mean(tf.cast(tf.equal(preds, y), tf.float32))
+            acc_per_pixel = tf.reduce_mean(tf.cast(tf.equal(tf.cast(preds, tf.int32), y), tf.float32))
 
             # Create optimizer
             print("4. Optimizing...")
