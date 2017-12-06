@@ -26,7 +26,7 @@ class Trainer:
         g = tf.Graph()
         with g.as_default(), g.device(opt.device), tf.Session(config=tf.ConfigProto(allow_soft_placement=True)) as sess:
             phase = tf.placeholder(tf.int32, name='phase')
-            is_training = tf.equal(phase, Phases.TRAINING)
+            is_training = tf.placeholder(tf.bool, name='is_training')
 
             # Create data loader
             print('1. Creating data loader...')
@@ -95,6 +95,7 @@ class Trainer:
                          feed_dict={
                              learning_rate: curr_learning_rate,
                              phase: Phases.TRAINING,
+                             is_training: True
                          })
 
                 # Compute validation loss
@@ -103,7 +104,8 @@ class Trainer:
                         [loss, loss_valid_summary, learning_rate_summary, x, y_color, pred_color],
                         feed_dict={
                             learning_rate: curr_learning_rate,
-                            phase: Phases.VALIDATING})
+                            phase: Phases.VALIDATING,
+                            is_training: False})
 
                     # output preview images
                     utils.write_image(val_x[0],
@@ -129,7 +131,8 @@ class Trainer:
                     curr_loss, loss_summ = sess.run([loss, loss_training_summary],
                                                     feed_dict={
                                                         learning_rate: curr_learning_rate,
-                                                        phase: Phases.TRAINING})
+                                                        phase: Phases.VALIDATING,
+                                                        is_training: False})
                     writer.add_summary(loss_summ, it)
 
                     print("Iteration " + str(it) + ": Loss=" + str(curr_loss))
