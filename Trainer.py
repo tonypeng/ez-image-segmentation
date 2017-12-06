@@ -144,7 +144,7 @@ class Trainer:
                         last_loss_change_processed_samples = processed_samples
                     writer.add_summary(val_loss_summ, it)
                     writer.add_summary(learning_rate_summ, it)
-                    writer.add_summary(acc_valid_summary, it)
+                    writer.add_summary(val_acc_summ, it)
 
                     print("Iteration " + str(it) + ": Val Loss=" + str(curr_val_loss) + "; Acc=" + str(
                         val_acc * 100.) + "%")
