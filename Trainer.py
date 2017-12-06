@@ -6,7 +6,6 @@ import tensorflow as tf
 from data_pipelines import *
 from TrainerOptions import *
 
-slim = tf.contrib.slim
 
 class Trainer:
     def __init__(self, opt: TrainerOptions):
@@ -53,18 +52,15 @@ class Trainer:
             print("2. Constructing network...")
             with tf.variable_scope(opt.model_name):
                 spatial_logits = self._construct_net(x, is_training)
-            flattened_logits = tf.reshape(spatial_logits, (-1, dataset.num_classes()))
             preds = tf.argmax(spatial_logits, axis=3)
             pred_color = utils.colorize(preds[0], vmin=0, vmax=dataset.num_classes(), cmap='viridis')
 
             # Compute losses
             print("3. Setting up losses...")
-            y_flattened = tf.squeeze(tf.reshape(y, (-1, 1)), axis=[1])
-            # loss = tf.reduce_mean(
-            #     tf.nn.sparse_softmax_cross_entropy_with_logits(logits=flattened_logits, labels=y_flattened))
-            labels = slim.one_hot_encoding(y, dataset.num_classes())
-            labels = tf.reshape(labels, spatial_logits.get_shape())
-            loss = slim.losses.softmax_cross_entropy(spatial_logits, labels)
+            y_one_hot = tf.one_hot(y, dataset.num_classes())
+            y_one_hot = tf.reshape(y_one_hot, spatial_logits.get_shape())
+            loss = tf.reduce_mean(
+                tf.nn.softmax_cross_entropy_with_logits(logits=spatial_logits, labels=y_one_hot))
             if opt.opt_weight_decay is not None:
                 regularizer = tf.add_n(tf.get_collection('weight_regularizers'))
                 loss += regularizer
