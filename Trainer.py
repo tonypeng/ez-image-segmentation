@@ -58,7 +58,7 @@ class Trainer:
 
             # Compute losses
             print("3. Setting up losses...")
-            y_flattened = tf.reshape(y, (-1, 1))
+            y_flattened = tf.reshape(y, (-1))
             loss = tf.reduce_mean(
                 tf.nn.sparse_softmax_cross_entropy_with_logits(logits=flattened_logits, labels=y_flattened))
             if opt.opt_weight_decay is not None:
