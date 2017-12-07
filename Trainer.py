@@ -54,7 +54,7 @@ class Trainer:
             # Construct network and compute spatial logits
             print("2. Constructing network...")
             with tf.variable_scope(opt.model_name):
-                spatial_logits = self._construct_net(x, is_training)
+                spatial_logits = self._construct_net(x, is_training, dropout_keep_prob)
             preds = tf.argmax(spatial_logits, axis=3)
             pred0_color = colorizer.colorize(preds[0])
 
