@@ -28,6 +28,7 @@ class Trainer:
         with g.as_default(), g.device(opt.device), tf.Session(config=tf.ConfigProto(allow_soft_placement=True)) as sess:
             phase = tf.placeholder(tf.int32, name='phase')
             is_training = tf.placeholder(tf.bool, name='is_training')
+            dropout_keep_prob = tf.placeholder(tf.float32, name='dropout_keep_prob')
 
             # Create data loader
             print('1. Creating data loader...')
@@ -105,7 +106,8 @@ class Trainer:
                     feed_dict={
                         learning_rate: curr_learning_rate,
                         phase: Phases.TRAINING,
-                        is_training: True
+                        is_training: True,
+                        dropout_keep_prob: opt.opt_dropout_keep_prob,
                     })
                 writer.add_summary(train_loss_summ, it)
                 writer.add_summary(train_acc_summ, it)
@@ -122,7 +124,9 @@ class Trainer:
                         feed_dict={
                             learning_rate: curr_learning_rate,
                             phase: Phases.VALIDATING,
-                            is_training: False})
+                            is_training: False,
+                            dropout_keep_prob: 1.0,
+                        })
 
                     # output preview images
                     utils.write_image(val_x[0],
@@ -162,9 +166,9 @@ class Trainer:
             return Ade20kTfRecords
         raise NotImplementedError
 
-    def _construct_net(self, x: tf.Tensor, is_training) -> tf.Tensor:
+    def _construct_net(self, x: tf.Tensor, is_training, dropout_keep_prob) -> tf.Tensor:
         if self.opt.arch == 'tiramisu103':
-            return nets.Tiramisu103(x, is_training, self.opt)
+            return nets.Tiramisu103(x, is_training, dropout_keep_prob, self.opt)
         raise NotImplementedError
 
     def _construct_optimizer(self, learning_rate):

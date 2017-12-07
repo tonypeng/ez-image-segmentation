@@ -13,7 +13,7 @@ def ThiccNet(x: tf.Tensor, is_training, opt: TrainerOptions) -> tf.Tensor:
     pass
 
 
-def Tiramisu103(x: tf.Tensor, is_training, opt: TrainerOptions) -> tf.Tensor:
+def Tiramisu103(x: tf.Tensor, is_training, dropout_keep_prob, opt: TrainerOptions) -> tf.Tensor:
     activation_func = get_activation_function(opt.arch_activation)
     dense_block_layer_counts = list(map(int, opt.arch_dense_block_layer_counts.split(',')))
 
@@ -22,7 +22,7 @@ def Tiramisu103(x: tf.Tensor, is_training, opt: TrainerOptions) -> tf.Tensor:
                                  activation=activation_func,
                                  init_stddev=_CONV_WEIGHT_STD_DEV,
                                  weight_decay=opt.opt_weight_decay,
-                                 dropout_keep_prob=opt.opt_dropout_keep_prob)
+                                 dropout_keep_prob=dropout_keep_prob)
 
     # downsampling
     shortcuts = [None for i in range(len(dense_block_layer_counts))]
@@ -33,13 +33,13 @@ def Tiramisu103(x: tf.Tensor, is_training, opt: TrainerOptions) -> tf.Tensor:
                                         activation=activation_func,
                                         init_stddev=_CONV_WEIGHT_STD_DEV,
                                         weight_decay=opt.opt_weight_decay,
-                                        dropout_keep_prob=opt.opt_dropout_keep_prob)
+                                        dropout_keep_prob=dropout_keep_prob)
         shortcuts[i] = downsample_blocks
         downsample_blocks = transition_down_block(downsample_blocks, is_training,
                                                   activation=activation_func,
                                                   init_stddev=_CONV_WEIGHT_STD_DEV,
                                                   weight_decay=opt.opt_weight_decay,
-                                                  dropout_keep_prob=opt.opt_dropout_keep_prob)
+                                                  dropout_keep_prob=dropout_keep_prob)
 
     # reverse to make things easier on the upsampling
     shortcuts = shortcuts[::-1]
@@ -55,7 +55,7 @@ def Tiramisu103(x: tf.Tensor, is_training, opt: TrainerOptions) -> tf.Tensor:
                 feature_maps_out=prev_block_feature_maps,
                 init_stddev=_CONV_WEIGHT_STD_DEV,
                 weight_decay=opt.opt_weight_decay,
-                dropout_keep_prob=opt.opt_dropout_keep_prob)
+                dropout_keep_prob=dropout_keep_prob)
 
     # upsampling
     upsampled_output = None
@@ -64,7 +64,7 @@ def Tiramisu103(x: tf.Tensor, is_training, opt: TrainerOptions) -> tf.Tensor:
                                         activation=activation_func,
                                         init_stddev=_CONV_WEIGHT_STD_DEV,
                                         weight_decay=opt.opt_weight_decay,
-                                        dropout_keep_prob=opt.opt_dropout_keep_prob)
+                                        dropout_keep_prob=dropout_keep_prob)
         shortcut = shortcuts[i]
         # concat with shortcut
         upsampled = tf.concat([upsampled, shortcut], 3)
@@ -77,7 +77,7 @@ def Tiramisu103(x: tf.Tensor, is_training, opt: TrainerOptions) -> tf.Tensor:
                                        feature_maps_out=prev_block_feature_maps,
                                        init_stddev=_CONV_WEIGHT_STD_DEV,
                                        weight_decay=opt.opt_weight_decay,
-                                       dropout_keep_prob=opt.opt_dropout_keep_prob)
+                                       dropout_keep_prob=dropout_keep_prob)
 
     # 1x1 conv
     output = conv2d(upsampled_output, 1, 1, opt.num_classes,

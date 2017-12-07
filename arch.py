@@ -39,13 +39,13 @@ def deconv2d(x: tf.Tensor, ksize, stride, chan_out, border_mode='SAME', init_std
                                   padding=border_mode)
 
 
-def resizeconv2d(x, W, stride, border_mode='SAME'):
+def resizeconv2d(x, W, stride, chan_out, border_mode='SAME'):
     x_size = utils.tensor_shape_as_list(x)
     resized_height, resized_width = x_size[1] * stride * stride, x_size[2] * stride * stride
     x_resized = tf.image.resize_images(x, (resized_height, resized_width),
                                        method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
     W_T = tf.transpose(W, perm=[0, 1, 3, 2])
-    return conv2d(x_resized, W_T, stride, border_mode='SAME')
+    return conv2d(x_resized, W_T, stride, chan_out, border_mode='SAME')
 
 
 def avg_pool(x: tf.Tensor, ksize, stride=None, border_mode='SAME'):
