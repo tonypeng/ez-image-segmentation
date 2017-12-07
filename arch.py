@@ -26,6 +26,7 @@ def make_initializer_function(initializer_descriptor, fan_in):
         return make_initializer_he_truncated(fan_in)
     elif initializer_name == 'truncated_given_stddev':
         return make_initializer_truncated_given_stddev(initializer_descriptor[1])
+    raise NotImplementedError
 
 
 def initialize_weights(shape, initializer, weight_decay=None) -> tf.Variable:

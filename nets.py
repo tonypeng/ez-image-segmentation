@@ -83,7 +83,7 @@ def Tiramisu103(x: tf.Tensor, is_training, dropout_keep_prob, opt: TrainerOption
 
 def _create_initializer_descriptor(opt):
     if opt.arch_initialization == 'he_truncated':
-        return (opt.arch_initialization)
+        return (opt.arch_initialization, )
     elif opt.arch_initialization == 'truncated_given_stddev':
         return (opt.arch_initialization, opt.arch_initialization_constant_stddev)
     raise NotImplementedError
