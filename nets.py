@@ -32,14 +32,11 @@ def ThiccNet(x: tf.Tensor, is_training, dropout_keep_prob, opt: TrainerOptions):
                                activation=activation_func,
                                weight_decay=opt.opt_weight_decay,
                                dropout_keep_prob=dropout_keep_prob))
-        # noinspection PyTypeChecker
-        downsample.append(transition_down_block(dense[i], is_training, initializer_descriptor,
+        downsampled = transition_down_block(dense[i], is_training, initializer_descriptor,
                                               activation=activation_func,
                                               weight_decay=opt.opt_weight_decay,
-                                              dropout_keep_prob=dropout_keep_prob))
-
-    # reverse to make things easier on the upsampling
-    dense_block_layer_counts = dense_block_layer_counts[::-1]
+                                              dropout_keep_prob=dropout_keep_prob)
+        downsample.append(downsampled)
 
     # Main output branch
 
