@@ -44,7 +44,8 @@ class Trainer:
                   )
 
             # Hyperparameters
-            learning_rate = tf.placeholder(tf.float32)
+            if opt.opt_learning_rate_decay < 0:
+                learning_rate = tf.placeholder(tf.float32)
 
             # Input / annotations
             x, y = dl.next_batch()
@@ -54,16 +55,18 @@ class Trainer:
             # Construct network and compute spatial logits
             print("2. Constructing network...")
             with tf.variable_scope(opt.model_name):
-                spatial_logits = self._construct_net(x, is_training, dropout_keep_prob)
-            preds = tf.argmax(spatial_logits, axis=3)
+                outputs = self._construct_net(x, is_training, dropout_keep_prob)
+            preds = tf.argmax(outputs[0][0], axis=3)
             pred0_color = colorizer.colorize(preds[0])
 
             # Compute losses
             print("3. Setting up losses and accuracies...")
             y_one_hot = tf.one_hot(y, dataset.num_classes())
-            y_one_hot = tf.reshape(y_one_hot, spatial_logits.get_shape())
-            loss = tf.reduce_mean(
-                tf.nn.softmax_cross_entropy_with_logits(logits=spatial_logits, labels=y_one_hot))
+            y_one_hot = tf.reshape(y_one_hot, outputs[0][0].get_shape())
+            loss = 0
+            for i in range(len(outputs)):
+                loss += outputs[i][1] * tf.reduce_mean(
+                    tf.nn.softmax_cross_entropy_with_logits(logits=outputs[i][0], labels=y_one_hot))
             if opt.opt_weight_decay is not None:
                 regularizer = tf.add_n(tf.get_collection('weight_regularizers'))
                 loss += regularizer
@@ -166,9 +169,13 @@ class Trainer:
             return Ade20kTfRecords
         raise NotImplementedError
 
-    def _construct_net(self, x: tf.Tensor, is_training, dropout_keep_prob) -> tf.Tensor:
+    def _construct_net(self, x: tf.Tensor, is_training, dropout_keep_prob):
         if self.opt.arch == 'tiramisu103':
-            return nets.Tiramisu103(x, is_training, dropout_keep_prob, self.opt)
+            return [(nets.Tiramisu103(x, is_training, dropout_keep_prob, self.opt), 1.0)]
+        if self.opt.arch == 'thicc':
+            output_weights = list(map(float, self.opt.opt_output_weights.split(',')))
+            logits, aux_logits = nets.ThiccNet(x, is_training, dropout_keep_prob, self.opt)
+            return [(logits, output_weights[0]), (aux_logits, output_weights[1])]
         raise NotImplementedError
 
     def _construct_optimizer(self, learning_rate):
