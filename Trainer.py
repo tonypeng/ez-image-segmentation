@@ -44,8 +44,7 @@ class Trainer:
                   )
 
             # Hyperparameters
-            if opt.opt_learning_rate_decay < 0:
-                learning_rate = tf.placeholder(tf.float32)
+            learning_rate = tf.placeholder(tf.float32)
 
             # Input / annotations
             x, y = dl.next_batch()
