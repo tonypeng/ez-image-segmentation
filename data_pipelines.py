@@ -1,4 +1,5 @@
 import libs.ade20k as ade20k
+import libs.camvid as camvid
 import libs.ade20k_preprocessor as ade20k_pre
 import libs.camvid_preprocessor as camvid_pre
 import numpy as np
@@ -124,11 +125,11 @@ class Ade20kPreprocessingStage:
 class CamVidTfRecords:
     @classmethod
     def num_classes(cls):
-        return 32
+        return camvid._NUM_CLASSES
 
     @classmethod
     def num_training_samples(cls):
-        return 367
+        return camvid.SPLITS_TO_SIZES['training']
 
     @classmethod
     def mean_pixel(cls):
@@ -138,14 +139,14 @@ class CamVidTfRecords:
         self.data_root = os.path.join(data_root, 'CamVid', 'records')
 
     def get_train_data(self):
-        return ade20k.get_split('training', self.data_root)
+        return camvid.get_split('training', self.data_root)
 
     def get_validation_data(self):
-        return ade20k.get_split('validation', self.data_root)
+        return camvid.get_split('validation', self.data_root)
 
     def get_test_data(self):
         # TODO: replace with actual test data
-        return ade20k.get_split('validation', self.data_root)
+        return camvid.get_split('validation', self.data_root)
 
 class CamVidPreprocessingStage:
     def __init__(self, resize_image_width, resize_image_height):
