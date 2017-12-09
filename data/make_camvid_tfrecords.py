@@ -43,7 +43,7 @@ class ImageReader(object):
 
 
 def _get_dataset_filename(dataset_dir, split_name, shard_id):
-    output_filename = 'ade20k_%s_%05d-of-%05d.tfrecord' % (
+    output_filename = 'camvid_%s_%05d-of-%05d.tfrecord' % (
         split_name, shard_id, _NUM_SHARDS)
     return os.path.join(dataset_dir, output_filename)
 
@@ -141,6 +141,6 @@ def run():
     _add_to_tfrecord(record_dir, train_image_dir, train_annotation_dir, 'training')
     _add_to_tfrecord(record_dir, val_image_dir, val_annotation_dir, 'validation')
 
-    print('\nFinished converting the Ade20k dataset!')
+    print('\nFinished converting the CamVid dataset!')
 
 run()
