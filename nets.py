@@ -113,7 +113,7 @@ def ThiccNet(x: tf.Tensor, is_training, dropout_keep_prob, opt: TrainerOptions):
     return output, aux_output
 
 
-def Tiramisu103(x: tf.Tensor, is_training, dropout_keep_prob, opt: TrainerOptions) -> tf.Tensor:
+def Tiramisu(x: tf.Tensor, is_training, dropout_keep_prob, opt: TrainerOptions) -> tf.Tensor:
     activation_func = get_activation_function(opt.arch_activation)
     initializer_descriptor = _create_initializer_descriptor(opt)
     dense_block_layer_counts = list(map(int, opt.arch_dense_block_layer_counts.split(',')))

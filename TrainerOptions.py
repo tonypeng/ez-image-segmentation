@@ -21,7 +21,7 @@ class TrainerOptions:
     def parse_args(self):
         parser = argparse.ArgumentParser()
         parser.add_argument('model_name', type=str)
-        parser.add_argument('--arch', type=str, default='thicc')
+        parser.add_argument('--arch', type=str, default='tiramisu')
         parser.add_argument('--data_root', type=str, default='data/')
         parser.add_argument('--image_width', type=int, default=224)
         parser.add_argument('--image_height', type=int, default=224)

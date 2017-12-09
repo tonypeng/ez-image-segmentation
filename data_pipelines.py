@@ -1,5 +1,6 @@
 import libs.ade20k as ade20k
-import libs.preprocessor as ade20k_pre
+import libs.ade20k_preprocessor as ade20k_pre
+import libs.camvid_preprocessor as camvid_pre
 import numpy as np
 import os
 import Phases
@@ -94,6 +95,10 @@ class Ade20kTfRecords:
     def num_training_samples(cls):
         return ade20k.SPLITS_TO_SIZES['training']
 
+    @classmethod
+    def mean_pixel(cls):
+        return np.array([ade20k_pre._R_MEAN, ade20k_pre._G_MEAN, ade20k_pre._B_MEAN])
+
     def __init__(self, data_root):
         self.data_root = os.path.join(data_root, 'ade20k', 'records')
 
@@ -114,4 +119,39 @@ class Ade20kPreprocessingStage:
 
     def apply(self, image, label, is_training):
         return ade20k_pre.preprocess_image(image, self.resize_image_height, self.resize_image_width,
+                                           label=label, is_training=is_training)
+
+class CamVidTfRecords:
+    @classmethod
+    def num_classes(cls):
+        return 32
+
+    @classmethod
+    def num_training_samples(cls):
+        return 367
+
+    @classmethod
+    def mean_pixel(cls):
+        return np.array([camvid_pre._R_MEAN, camvid_pre._G_MEAN, camvid_pre._B_MEAN])
+
+    def __init__(self, data_root):
+        self.data_root = os.path.join(data_root, 'CamVid', 'records')
+
+    def get_train_data(self):
+        return ade20k.get_split('training', self.data_root)
+
+    def get_validation_data(self):
+        return ade20k.get_split('validation', self.data_root)
+
+    def get_test_data(self):
+        # TODO: replace with actual test data
+        return ade20k.get_split('validation', self.data_root)
+
+class CamVidPreprocessingStage:
+    def __init__(self, resize_image_width, resize_image_height):
+        self.resize_image_width = resize_image_width
+        self.resize_image_height = resize_image_height
+
+    def apply(self, image, label, is_training):
+        return camvid_pre.preprocess_image(image, self.resize_image_height, self.resize_image_width,
                                            label=label, is_training=is_training)

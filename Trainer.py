@@ -48,6 +48,7 @@ class Trainer:
 
             # Input / annotations
             x, y = dl.next_batch()
+            x = x - dataset.mean_pixel()
             colorizer = SegmentationColorizer(0, dataset.num_classes(), opt.colorizer_map)
             y0_color = colorizer.colorize(y[0])
 
@@ -166,11 +167,13 @@ class Trainer:
     def _get_dataset(self):
         if self.opt.dataset == 'ade20k':
             return Ade20kTfRecords
+        if self.opt.dataset == 'camvid':
+            return CamVidTfRecords
         raise NotImplementedError
 
     def _construct_net(self, x: tf.Tensor, is_training, dropout_keep_prob):
-        if self.opt.arch == 'tiramisu103':
-            return [(nets.Tiramisu103(x, is_training, dropout_keep_prob, self.opt), 1.0)]
+        if self.opt.arch == 'tiramisu':
+            return [(nets.Tiramisu(x, is_training, dropout_keep_prob, self.opt), 1.0)]
         if self.opt.arch == 'thicc':
             output_weights = list(map(float, self.opt.opt_output_weights.split(',')))
             logits, aux_logits = nets.ThiccNet(x, is_training, dropout_keep_prob, self.opt)

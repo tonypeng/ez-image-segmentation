@@ -8,9 +8,9 @@ from tensorflow.python.ops import control_flow_ops
 
 slim = tf.contrib.slim
 
-_R_MEAN = 123.68
-_G_MEAN = 116.78
-_B_MEAN = 103.94
+_R_MEAN = 99.63/255.
+_G_MEAN = 103.33/255.
+_B_MEAN = 105.66/255.
 
 _RESIZE_SIDE_MIN = 473
 _RESIZE_SIDE_MAX = 1024
