@@ -21,7 +21,7 @@ class TrainerOptions:
     def parse_args(self):
         parser = argparse.ArgumentParser()
         parser.add_argument('model_name', type=str)
-        parser.add_argument('--arch', type=str, default='tiramisu')
+        parser.add_argument('--arch', type=str, default='thicc')
         parser.add_argument('--data_root', type=str, default='data/')
         parser.add_argument('--image_width', type=int, default=224)
         parser.add_argument('--image_height', type=int, default=224)
@@ -58,7 +58,7 @@ class TrainerOptions:
         parser.add_argument('--loss_adjustment_sample_interval', type=int, default=15)
         parser.add_argument('--loss_adjustment_factor', type=float, default=2.)
         parser.add_argument('--loss_adjustment_coin_flip_prob', type=float, default=1.0)
-        parser.add_argument('--loss_adjustment_min_epochs', type=int, default=3)
+        parser.add_argument('--loss_adjustment_min_epochs', type=int, default=1)
         parser.add_argument('--num_readers', type=int, default=6)
         parser.add_argument('--num_preprocessing_threads', type=int, default=6)
         self.options = vars(parser.parse_args())

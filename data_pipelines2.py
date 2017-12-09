@@ -63,9 +63,11 @@ class BatchedDataLoader:
         for i in range(n):
             batch_x_file_path, batch_y_file_path = self.data_file_paths[self.data_idx]
             x = utils.read_image(batch_x_file_path, size=(self.image_height, self.image_width))
-            batch_x[i] = x.astype(np.float32) / 255. - self.dataset.get_data_mean()
-            batch_y[i] = utils.read_image(batch_y_file_path,
+            batch_x[i] = x.astype(np.float32) / 255. - self.dataset.mean_pixel()
+            y = utils.read_image(batch_y_file_path,
                                           mode='I', size=(self.image_height, self.image_width)).astype('int32')
+            y = np.expand_dims(y, 3)
+            batch_y[i] = y
 
             self.data_idx += 1
             if self.data_idx == len(self.data_file_paths):
@@ -75,6 +77,7 @@ class BatchedDataLoader:
         return batch_x, batch_y
 
     def _initialize_dataset(self):
+        self.data_idx = 0
         if self.phase == BatchedDataLoader._TRAIN:
             self.data_file_paths = self.dataset.get_train_file_paths()
         elif self.phase == BatchedDataLoader._VALID:
@@ -102,7 +105,7 @@ class MitAde:
             train_data_filepaths_x.append(os.path.join(train_data_root_x, f))
             train_data_filepaths_y.append(os.path.join(train_data_root_y, f))
 
-        return train_data_filepaths_x, train_data_filepaths_y
+        return list(zip(train_data_filepaths_x, train_data_filepaths_y))
 
     def get_valid_file_paths(self):
         valid_data_root_x = os.path.join(self.data_root, 'images', 'validation')
@@ -116,7 +119,7 @@ class MitAde:
             valid_data_filepaths_x.append(os.path.join(valid_data_root_x, f))
             valid_data_filepaths_y.append(os.path.join(valid_data_root_y, f))
 
-        return valid_data_filepaths_x, valid_data_filepaths_y
+        return list(zip(valid_data_filepaths_x, valid_data_filepaths_y))
 
     def get_test_file_paths(self):
         test_data_root_x = os.path.join(self.data_root, 'images', 'test')
@@ -130,7 +133,7 @@ class MitAde:
             test_data_filepaths_x.append(os.path.join(test_data_root_x, f))
             test_data_filepaths_y.append(os.path.join(test_data_root_y, f))
 
-        return test_data_filepaths_x, test_data_filepaths_y
+        return list(zip(test_data_filepaths_x, test_data_filepaths_y))
 
 class CamVid:
     @classmethod
@@ -160,7 +163,7 @@ class CamVid:
             train_data_filepaths_x.append(os.path.join(train_data_root_x, f))
             train_data_filepaths_y.append(os.path.join(train_data_root_y, f))
 
-        return train_data_filepaths_x, train_data_filepaths_y
+        return list(zip(train_data_filepaths_x, train_data_filepaths_y))
 
     def get_valid_file_paths(self):
         valid_data_root_x = os.path.join(self.data_root, 'val')
@@ -174,7 +177,7 @@ class CamVid:
             valid_data_filepaths_x.append(os.path.join(valid_data_root_x, f))
             valid_data_filepaths_y.append(os.path.join(valid_data_root_y, f))
 
-        return valid_data_filepaths_x, valid_data_filepaths_y
+        return list(zip(valid_data_filepaths_x, valid_data_filepaths_y))
 
     def get_test_file_paths(self):
         test_data_root_x = os.path.join(self.data_root, 'test')
@@ -188,4 +191,4 @@ class CamVid:
             test_data_filepaths_x.append(os.path.join(test_data_root_x, f))
             test_data_filepaths_y.append(os.path.join(test_data_root_y, f))
 
-        return test_data_filepaths_x, test_data_filepaths_y
+        return list(zip(test_data_filepaths_x, test_data_filepaths_y))

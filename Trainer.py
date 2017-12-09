@@ -66,22 +66,23 @@ class Trainer:
             # Input / annotations
             # x, y = dl.next_batch()
             x = tf.placeholder(tf.float32, [None, opt.image_height, opt.image_width, 3])
-            y = tf.placeholder(tf.int64, [None, opt.image_height, opt.image_width, 1])
-            x_pre = x - dataset.mean_pixel()
+            y = tf.placeholder(tf.int32, [None, opt.image_height, opt.image_width, 1])
             colorizer = SegmentationColorizer(0, dataset.num_classes(), opt.colorizer_map)
             y0_color = colorizer.colorize(y[0])
 
             # Construct network and compute spatial logits
             print("2. Constructing network...")
             with tf.variable_scope(opt.model_name):
-                outputs = self._construct_net(x_pre, is_training, dropout_keep_prob, dataset.num_classes())
+                outputs = self._construct_net(x, is_training, dropout_keep_prob, dataset.num_classes())
             preds = tf.argmax(outputs[0][0], axis=3)
             pred0_color = colorizer.colorize(preds[0])
 
             # Compute losses
             print("3. Setting up losses and accuracies...")
             y_one_hot = tf.one_hot(y, dataset.num_classes())
-            y_one_hot = tf.reshape(y_one_hot, outputs[0][0].get_shape())
+            output_shape = utils.tensor_shape_as_list(outputs[0][0])
+            output_shape[0] = -1
+            y_one_hot = tf.reshape(y_one_hot, output_shape)
             loss = 0
             for i in range(len(outputs)):
                 loss += outputs[i][1] * tf.reduce_mean(
@@ -134,6 +135,8 @@ class Trainer:
                         is_training: True,
                         dropout_keep_prob: opt.opt_dropout_keep_prob,
                     })
+                # utils.write_image(val_x[0]+dataset.mean_pixel(),
+                #                   utils.get_preview_file_path(opt.preview_images_path, 'inp', str(it), 'png'))
                 writer.add_summary(train_loss_summ, it)
                 writer.add_summary(train_acc_summ, it)
 

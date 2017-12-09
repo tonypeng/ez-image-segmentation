@@ -74,7 +74,7 @@ class ParallelizedBatchedDataLoader:
             data,
             num_readers=self._num_readers,
             common_queue_capacity=20 * self._batch_size,
-            common_queue_min=10 * self._batch_size)
+            common_queue_min=10 * self._batch_size, shuffle=True)
         [image, label] = provider.get(['image', 'label'])
         for stage in self._pipeline_stages:
             image, label = stage.apply(image, label, is_training)

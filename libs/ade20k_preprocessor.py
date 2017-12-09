@@ -248,10 +248,10 @@ def preprocess_for_train(image,
   image = tf.cond(val_lr > 0.5, lambda: tf.image.flip_left_right(image), lambda: image)
   label = tf.cond(val_lr > 0.5, lambda: tf.image.flip_left_right(label), lambda: label)
 
-  val_ud = tf.to_float(tf.random_uniform([1]))[0]
-  image = tf.cond(val_ud > 0.5, lambda: tf.image.flip_up_down(image), lambda: image)
-  label = tf.cond(val_ud > 0.5, lambda: tf.image.flip_up_down(label), lambda: label)
-
+  # val_ud = tf.to_float(tf.random_uniform([1]))[0]
+  # image = tf.cond(val_ud > 0.5, lambda: tf.image.flip_up_down(image), lambda: image)
+  # label = tf.cond(val_ud > 0.5, lambda: tf.image.flip_up_down(label), lambda: label)
+  #
   image = _apply_with_random_selector(
       image,
       lambda x, ordering: _distort_color(x, ordering, fast_mode=True),
