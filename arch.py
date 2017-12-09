@@ -102,7 +102,7 @@ def dense_block(x: tf.Tensor, is_training, num_layers: int, initializer_descript
                 dropout_keep_prob=None) -> tf.Tensor:
     output = x
     for i in range(num_layers):
-        features = conv2d_bn_activation(x, is_training, 3, 1, add_features_per_layer, initializer_descriptor,
+        features = conv2d_bn_activation(output, is_training, 3, 1, add_features_per_layer, initializer_descriptor,
                                       activation=activation, weight_decay=weight_decay,
                                       dropout_keep_prob=dropout_keep_prob)
         if feature_maps_out is not None:
