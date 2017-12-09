@@ -81,8 +81,8 @@ def _add_to_tfrecord(record_dir, image_dir, annotation_dir, split_name):
 
     assert split_name in ['training', 'validation']
 
-    filenames = zip(_get_image_filenames(image_dir),
-                    _get_image_filenames(annotation_dir))
+    filenames = list(zip(_get_image_filenames(image_dir),
+                    _get_image_filenames(annotation_dir)))
     # All matching files must have same name
     assert all([x[:-4] == y[:-4] for x, y in filenames])
 
