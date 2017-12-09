@@ -25,7 +25,6 @@ class TrainerOptions:
         parser.add_argument('--data_root', type=str, default='data/')
         parser.add_argument('--image_width', type=int, default=224)
         parser.add_argument('--image_height', type=int, default=224)
-        parser.add_argument('--num_classes', type=int, default=150)
         parser.add_argument('--device', type=str, default='/gpu:0')
         parser.add_argument('--optimizer', type=str, default='rmsprop')
         parser.add_argument('--dataset', type=str, default='ade20k')

@@ -9,7 +9,7 @@ _CONV_WEIGHT_STD_DEV = 0.1
 
 
 # The Huge Image-segmentation Convolutional Classifier: A Dense Net for Per-Pixel Semantic Classification
-def ThiccNet(x: tf.Tensor, is_training, dropout_keep_prob, opt: TrainerOptions):
+def ThiccNet(x: tf.Tensor, is_training, dropout_keep_prob, num_classes, opt: TrainerOptions):
     activation_func = get_activation_function(opt.arch_activation)
     initializer_descriptor = _create_initializer_descriptor(opt)
 
@@ -72,7 +72,7 @@ def ThiccNet(x: tf.Tensor, is_training, dropout_keep_prob, opt: TrainerOptions):
                                        dropout_keep_prob=dropout_keep_prob)
 
     # 1x1 conv (output)
-    output = conv2d(upsampled_output, 1, 1, opt.num_classes, initializer_descriptor,
+    output = conv2d(upsampled_output, 1, 1, num_classes, initializer_descriptor,
                     weight_decay=opt.opt_weight_decay)
 
     # Aux output branch
@@ -107,13 +107,13 @@ def ThiccNet(x: tf.Tensor, is_training, dropout_keep_prob, opt: TrainerOptions):
                                        weight_decay=opt.opt_weight_decay,
                                        dropout_keep_prob=dropout_keep_prob)
 
-    aux_output = conv2d(upsampled_output, 1, 1, opt.num_classes, initializer_descriptor,
+    aux_output = conv2d(upsampled_output, 1, 1, num_classes, initializer_descriptor,
                     weight_decay=opt.opt_weight_decay)
 
     return output, aux_output
 
 
-def Tiramisu(x: tf.Tensor, is_training, dropout_keep_prob, opt: TrainerOptions) -> tf.Tensor:
+def Tiramisu(x: tf.Tensor, is_training, dropout_keep_prob, num_classes, opt: TrainerOptions) -> tf.Tensor:
     activation_func = get_activation_function(opt.arch_activation)
     initializer_descriptor = _create_initializer_descriptor(opt)
     dense_block_layer_counts = list(map(int, opt.arch_dense_block_layer_counts.split(',')))
@@ -176,7 +176,7 @@ def Tiramisu(x: tf.Tensor, is_training, dropout_keep_prob, opt: TrainerOptions) 
                                        dropout_keep_prob=dropout_keep_prob)
 
     # 1x1 conv
-    output = conv2d(upsampled_output, 1, 1, opt.num_classes, initializer_descriptor,
+    output = conv2d(upsampled_output, 1, 1, num_classes, initializer_descriptor,
                     weight_decay=opt.opt_weight_decay)
 
     return output

@@ -55,7 +55,7 @@ class Trainer:
             # Construct network and compute spatial logits
             print("2. Constructing network...")
             with tf.variable_scope(opt.model_name):
-                outputs = self._construct_net(x, is_training, dropout_keep_prob)
+                outputs = self._construct_net(x, is_training, dropout_keep_prob, dataset.num_classes())
             preds = tf.argmax(outputs[0][0], axis=3)
             pred0_color = colorizer.colorize(preds[0])
 
@@ -171,12 +171,12 @@ class Trainer:
             return CamVidTfRecords
         raise NotImplementedError
 
-    def _construct_net(self, x: tf.Tensor, is_training, dropout_keep_prob):
+    def _construct_net(self, x: tf.Tensor, is_training, dropout_keep_prob, num_classes):
         if self.opt.arch == 'tiramisu':
-            return [(nets.Tiramisu(x, is_training, dropout_keep_prob, self.opt), 1.0)]
+            return [(nets.Tiramisu(x, is_training, dropout_keep_prob, num_classes, self.opt), 1.0)]
         if self.opt.arch == 'thicc':
             output_weights = list(map(float, self.opt.opt_output_weights.split(',')))
-            logits, aux_logits = nets.ThiccNet(x, is_training, dropout_keep_prob, self.opt)
+            logits, aux_logits = nets.ThiccNet(x, is_training, dropout_keep_prob, num_classes, self.opt)
             return [(logits, output_weights[0]), (aux_logits, output_weights[1])]
         raise NotImplementedError
 
