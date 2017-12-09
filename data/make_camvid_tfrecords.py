@@ -109,8 +109,8 @@ def _add_to_tfrecord(record_dir, image_dir, annotation_dir, split_name):
                         image_filename = os.path.join(image_dir, image_filename)
                         label_filename = os.path.join(annotation_dir, label_filename)
 
-                        image_data = tf.gfile.FastGFile(image_filename, 'r').read()
-                        label_data = tf.gfile.FastGFile(label_filename, 'r').read()
+                        image_data = tf.gfile.FastGFile(image_filename, 'rb').read()
+                        label_data = tf.gfile.FastGFile(label_filename, 'rb').read()
                         height, width, depth = image_reader.read_jpeg_dims(sess, image_data)
                         height, width, depth = image_reader.read_png_dims(sess, label_data)
 
