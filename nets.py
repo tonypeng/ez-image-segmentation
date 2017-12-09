@@ -125,7 +125,7 @@ def Tiramisu(x: tf.Tensor, is_training, dropout_keep_prob, num_classes, opt: Tra
                                  dropout_keep_prob=dropout_keep_prob)
 
     # downsampling
-    shortcuts = [None for i in range(len(dense_block_layer_counts))]
+    shortcuts = [None for _ in range(len(dense_block_layer_counts))]
     downsample_blocks = conv1
     for i in range(len(dense_block_layer_counts)):
         downsample_blocks = dense_block(downsample_blocks, is_training, dense_block_layer_counts[i],
