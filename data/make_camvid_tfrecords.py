@@ -115,7 +115,7 @@ def _add_to_tfrecord(record_dir, image_dir, annotation_dir, split_name):
                         height, width, depth = image_reader.read_png_dims(sess, label_data)
 
                         example = _to_tfexample(
-                            image_data, 'jpg', label_data, 'png', height, width)
+                            image_data, b'jpg', label_data, 'png', height, width)
                         tfrecord_writer.write(example.SerializeToString())
 
     sys.stdout.write('\n')
