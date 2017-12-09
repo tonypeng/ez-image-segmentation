@@ -4,7 +4,8 @@ import random
 from SegmentationColorizer import *
 import tensorflow as tf
 
-from data_pipelines import *
+# from data_pipelines import *
+from data_pipelines2 import *
 from TrainerOptions import *
 
 
@@ -33,29 +34,47 @@ class Trainer:
             # Create data loader
             print('1. Creating data loader...')
             dataset = self._get_dataset()
-            dl = (ParallelizedBatchedDataLoader
-                  .from_data_root(opt.data_root)
-                  .with_dataset(dataset)
-                  .phase(phase)
-                  .batch_size(opt.batch_size)
-                  .num_readers(opt.num_readers)
-                  .num_preprocessing_threads(opt.num_preprocessing_threads)
-                  .pipeline_stage(Ade20kPreprocessingStage(opt.image_width, opt.image_height))
-                  )
+            # dl = (ParallelizedBatchedDataLoader
+            #       .from_data_root(opt.data_root)
+            #       .with_dataset(dataset)
+            #       .phase(phase)
+            #       .batch_size(opt.batch_size)
+            #       .num_readers(opt.num_readers)
+            #       .num_preprocessing_threads(opt.num_preprocessing_threads)
+            #       .pipeline_stage(Ade20kPreprocessingStage(opt.image_width, opt.image_height))
+            #       )
+            dl_train = (
+                BatchedDataLoader
+                    .from_data(opt.data_root)
+                    .with_dataset(dataset)
+                    .randomized()
+                    .image_dimensions(opt.image_width, opt.image_height)
+                    .training()
+            )
+            dl_val = (
+                BatchedDataLoader
+                    .from_data(opt.data_root)
+                    .with_dataset(dataset)
+                    .randomized()
+                    .image_dimensions(opt.image_width, opt.image_height)
+                    .training()
+            )
 
             # Hyperparameters
             learning_rate = tf.placeholder(tf.float32)
 
             # Input / annotations
-            x, y = dl.next_batch()
-            x = x - dataset.mean_pixel()
+            # x, y = dl.next_batch()
+            x = tf.placeholder(tf.float32, [None, opt.image_height, opt.image_width, 3])
+            y = tf.placeholder(tf.int64, [None, opt.image_height, opt.image_width, 1])
+            x_pre = x - dataset.mean_pixel()
             colorizer = SegmentationColorizer(0, dataset.num_classes(), opt.colorizer_map)
             y0_color = colorizer.colorize(y[0])
 
             # Construct network and compute spatial logits
             print("2. Constructing network...")
             with tf.variable_scope(opt.model_name):
-                outputs = self._construct_net(x, is_training, dropout_keep_prob, dataset.num_classes())
+                outputs = self._construct_net(x_pre, is_training, dropout_keep_prob, dataset.num_classes())
             preds = tf.argmax(outputs[0][0], axis=3)
             pred0_color = colorizer.colorize(preds[0])
 
@@ -104,9 +123,12 @@ class Trainer:
                 it = opt.start_from_iteration
 
             while it < opt.opt_iterations:
+                x_batch, y_batch = dl_train.next_batch(opt.batch_size)
                 _, train_loss, train_loss_summ, train_acc, train_acc_summ = sess.run(
                     [optimize, loss, loss_training_summary, acc_per_pixel, acc_training_summary],
                     feed_dict={
+                        x: x_batch,
+                        y: y_batch,
                         learning_rate: curr_learning_rate,
                         phase: Phases.TRAINING,
                         is_training: True,
@@ -121,10 +143,13 @@ class Trainer:
 
                 # Compute validation loss
                 if it % opt.val_loss_iter_print == 0:
+                    x_val_batch, y_val_batch = dl_val.next_batch(opt.batch_size)
                     curr_val_loss, val_loss_summ, learning_rate_summ, val_x, yc, pc, val_acc, val_acc_summ = sess.run(
                         [loss, loss_valid_summary, learning_rate_summary, x, y0_color, pred0_color, acc_per_pixel,
                          acc_valid_summary],
                         feed_dict={
+                            x: x_val_batch,
+                            y: y_val_batch,
                             learning_rate: curr_learning_rate,
                             phase: Phases.VALIDATING,
                             is_training: False,
@@ -164,11 +189,18 @@ class Trainer:
             coord.join(threads)
             sess.close()
 
+    # def _get_dataset(self):
+    #     if self.opt.dataset == 'ade20k':
+    #         return Ade20kTfRecords
+    #     if self.opt.dataset == 'camvid':
+    #         return CamVidTfRecords
+    #     raise NotImplementedError
+
     def _get_dataset(self):
         if self.opt.dataset == 'ade20k':
-            return Ade20kTfRecords
+            return MitAde
         if self.opt.dataset == 'camvid':
-            return CamVidTfRecords
+            return CamVid
         raise NotImplementedError
 
     def _construct_net(self, x: tf.Tensor, is_training, dropout_keep_prob, num_classes):
