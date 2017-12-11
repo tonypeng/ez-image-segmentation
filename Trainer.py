@@ -214,10 +214,12 @@ class Trainer:
     def _construct_net(self, x: tf.Tensor, is_training, dropout_keep_prob, num_classes):
         if self.opt.arch == 'tiramisu':
             return [(nets.Tiramisu(x, is_training, dropout_keep_prob, num_classes, self.opt), 1.0)]
-        if self.opt.arch == 'thicc':
-            output_weights = list(map(float, self.opt.opt_output_weights.split(',')))
-            logits, aux_logits = nets.ThiccNet(x, is_training, dropout_keep_prob, num_classes, self.opt)
-            return [(logits, output_weights[0]), (aux_logits, output_weights[1])]
+        if self.opt.arch == 'AtrousStridedNet':
+            return [(nets.Tiramisu(x, is_training, dropout_keep_prob, num_classes, self.opt), 1.0)]
+        if self.opt.arch == 'StridedNet':
+            return [(nets.Tiramisu(x, is_training, dropout_keep_prob, num_classes, self.opt), 1.0)]
+        if self.opt.arch == 'AtrousNet':
+            return [(nets.Tiramisu(x, is_training, dropout_keep_prob, num_classes, self.opt), 1.0)]
         raise NotImplementedError
 
     def _construct_optimizer(self, learning_rate):
