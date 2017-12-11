@@ -121,6 +121,14 @@ def transition_down_block(x: tf.Tensor, is_training, initializer_descriptor,
     outp = max_pool(outp, 2)
     return outp
 
+def transition_down_block_strided(x: tf.Tensor, is_training, initializer_descriptor,
+                          activation=tf.nn.relu, weight_decay=None, dropout_keep_prob=None):
+    chan_in = utils.tensor_shape_as_list(x)[-1]
+    outp = conv2d_bn_activation(x, is_training, 1, 1, chan_in, initializer_descriptor,
+                                activation=activation, weight_decay=weight_decay,
+                                dropout_keep_prob=dropout_keep_prob)
+    outp = conv2d(outp, 3, 2, chan_in, initializer_descriptor, border_mode='SAME')
+    return outp
 
 def transition_up_block(x: tf.Tensor, is_training, initializer_descriptor,
                         activation=tf.nn.relu, weight_decay=None, dropout_keep_prob=None):
