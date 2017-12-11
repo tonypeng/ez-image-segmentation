@@ -215,11 +215,11 @@ class Trainer:
         if self.opt.arch == 'tiramisu':
             return [(nets.Tiramisu(x, is_training, dropout_keep_prob, num_classes, self.opt), 1.0)]
         if self.opt.arch == 'AtrousStridedNet':
-            return [(nets.Tiramisu(x, is_training, dropout_keep_prob, num_classes, self.opt), 1.0)]
+            return [(nets.AtrousStridedNet(x, is_training, dropout_keep_prob, num_classes, self.opt), 1.0)]
         if self.opt.arch == 'StridedNet':
-            return [(nets.Tiramisu(x, is_training, dropout_keep_prob, num_classes, self.opt), 1.0)]
+            return [(nets.StridedNet(x, is_training, dropout_keep_prob, num_classes, self.opt), 1.0)]
         if self.opt.arch == 'AtrousNet':
-            return [(nets.Tiramisu(x, is_training, dropout_keep_prob, num_classes, self.opt), 1.0)]
+            return [(nets.AtrousNet(x, is_training, dropout_keep_prob, num_classes, self.opt), 1.0)]
         raise NotImplementedError
 
     def _construct_optimizer(self, learning_rate):
