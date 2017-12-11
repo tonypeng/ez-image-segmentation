@@ -84,10 +84,12 @@ class Trainer:
             output_shape = utils.tensor_shape_as_list(outputs[0][0])
             output_shape[0] = -1
             y_one_hot = tf.reshape(y_one_hot, output_shape)
+
             loss = 0
             for i in range(len(outputs)):
+                spatial_logits = outputs[i][0]
                 loss += outputs[i][1] * tf.reduce_mean(
-                    tf.nn.softmax_cross_entropy_with_logits(logits=outputs[i][0], labels=y_one_hot))
+                    tf.nn.softmax_cross_entropy_with_logits(logits=spatial_logits, labels=y_one_hot))
             if opt.opt_weight_decay is not None:
                 regularizer = tf.add_n(tf.get_collection('weight_regularizers'))
                 loss += regularizer
@@ -172,7 +174,9 @@ class Trainer:
                     if (self._should_adjust_learning_rate(curr_val_loss)
                         and curr_learning_rate > opt.opt_min_learning_rate
                         and (processed_samples - last_loss_change_processed_samples)
-                            >= dataset.num_training_samples() * opt.loss_adjustment_min_epochs):
+                            >= dataset.num_training_samples() * opt.loss_adjustment_min_epochs
+                        or (processed_samples - last_loss_change_processed_samples)
+                            >= dataset.num_training_samples() * opt.loss_adjustment_max_epochs):
                         print("Dropping learning rate from: " + str(curr_learning_rate))
                         curr_learning_rate = curr_learning_rate / opt.loss_adjustment_factor
                         curr_learning_rate = max(curr_learning_rate, opt.opt_min_learning_rate)

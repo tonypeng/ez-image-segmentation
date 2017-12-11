@@ -11,7 +11,7 @@ _FILE_PATTERN = 'camvid_%s_*.tfrecord'
 
 SPLITS_TO_SIZES = {'training': 367, 'validation': 101}
 
-_NUM_CLASSES = 32
+_NUM_CLASSES = 12
 
 _ITEMS_TO_DESCRIPTIONS = {
     'image': 'A color image of varying size.',

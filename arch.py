@@ -84,6 +84,7 @@ def atrous_conv2d(x: tf.Tensor, ksize, rate, chan_out, initializer_descriptor, b
 def conv2d_bn_activation(x: tf.Tensor, is_training, ksize, stride, chan_out, initializer_descriptor,
                          border_mode='SAME', activation=tf.nn.relu, bn_scale=False, weight_decay=None,
                          dropout_keep_prob=None):
+
     outp = conv2d(x, ksize, stride, chan_out, initializer_descriptor,
                   border_mode=border_mode, weight_decay=weight_decay)
     outp = batch_norm(outp, is_training, scale=bn_scale)
@@ -127,8 +128,8 @@ def transition_up_block(x: tf.Tensor, is_training, initializer_descriptor,
     outp = deconv2d(x, 3, 2, chan_in, initializer_descriptor, weight_decay=weight_decay)
     outp = batch_norm(outp, is_training)
     outp = activation(outp)
-    if dropout_keep_prob is not None:
-        outp = dropout(outp, dropout_keep_prob)
+    # if dropout_keep_prob is not None:
+    #     outp = dropout(outp, dropout_keep_prob)
     return outp
 
 
