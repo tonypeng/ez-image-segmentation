@@ -29,7 +29,7 @@ def AtrousStridedNet(x: tf.Tensor, is_training, dropout_keep_prob, num_classes, 
                                         weight_decay=opt.opt_weight_decay,
                                         dropout_keep_prob=dropout_keep_prob)
         shortcuts[i] = downsample_blocks
-        downsample_blocks = transition_down_block(downsample_blocks, is_training, initializer_descriptor,
+        downsample_blocks = transition_down_block_strided(downsample_blocks, is_training, initializer_descriptor,
                                                   activation=activation_func,
                                                   weight_decay=opt.opt_weight_decay,
                                                   dropout_keep_prob=dropout_keep_prob)
@@ -97,7 +97,7 @@ def StridedNet(x: tf.Tensor, is_training, dropout_keep_prob, num_classes, opt: T
                                         weight_decay=opt.opt_weight_decay,
                                         dropout_keep_prob=dropout_keep_prob)
         shortcuts[i] = downsample_blocks
-        downsample_blocks = transition_down_block(downsample_blocks, is_training, initializer_descriptor,
+        downsample_blocks = transition_down_block_strided(downsample_blocks, is_training, initializer_descriptor,
                                                   activation=activation_func,
                                                   weight_decay=opt.opt_weight_decay,
                                                   dropout_keep_prob=dropout_keep_prob)
