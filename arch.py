@@ -93,6 +93,18 @@ def conv2d_bn_activation(x: tf.Tensor, is_training, ksize, stride, chan_out, ini
         outp = dropout(outp, dropout_keep_prob)
     return outp
 
+def conv2d_bn_activation_atrous(x: tf.Tensor, is_training, ksize, stride, chan_out, initializer_descriptor,
+                         border_mode='SAME', activation=tf.nn.relu, bn_scale=False, weight_decay=None,
+                         dropout_keep_prob=None):
+
+    outp = atrous_conv2d(x, ksize, stride, chan_out, initializer_descriptor,
+                  border_mode=border_mode, weight_decay=weight_decay)
+    outp = batch_norm(outp, is_training, scale=bn_scale)
+    outp = activation(outp)
+    if dropout_keep_prob is not None:
+        outp = dropout(outp, dropout_keep_prob)
+    return outp
+
 def max_pool(x: tf.Tensor, ksize, stride=None, border_mode='SAME'):
     stride = stride or ksize
     return tf.nn.max_pool(x, [1, ksize, ksize, 1], [1, stride, stride, 1], padding=border_mode)
@@ -111,6 +123,18 @@ def dense_block(x: tf.Tensor, is_training, num_layers: int, initializer_descript
         output = tf.concat([output, features], 3)
     return output
 
+def dense_block_atrous(x: tf.Tensor, is_training, num_layers: int, initializer_descriptor,
+                add_features_per_layer=16, activation=tf.nn.relu, feature_maps_out=None, weight_decay=None,
+                dropout_keep_prob=None) -> tf.Tensor:
+    output = x
+    for i in range(num_layers):
+        features = conv2d_bn_activation_atrous(output, is_training, 3, 1, add_features_per_layer, initializer_descriptor,
+                                      activation=activation, weight_decay=weight_decay,
+                                      dropout_keep_prob=dropout_keep_prob)
+        if feature_maps_out is not None:
+            feature_maps_out.append(features)
+        output = tf.concat([output, features], 3)
+    return output
 
 def transition_down_block(x: tf.Tensor, is_training, initializer_descriptor,
                           activation=tf.nn.relu, weight_decay=None, dropout_keep_prob=None):

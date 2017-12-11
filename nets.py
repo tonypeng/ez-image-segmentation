@@ -22,7 +22,7 @@ def AtrousStridedNet(x: tf.Tensor, is_training, dropout_keep_prob, num_classes, 
     shortcuts = [None for _ in range(len(dense_block_layer_counts))]
     downsample_blocks = conv1
     for i in range(len(dense_block_layer_counts)):
-        downsample_blocks = dense_block(downsample_blocks, is_training, dense_block_layer_counts[i],
+        downsample_blocks = dense_block_atrous(downsample_blocks, is_training, dense_block_layer_counts[i],
                                         initializer_descriptor,
                                         add_features_per_layer=opt.arch_dense_block_add_features_per_layer,
                                         activation=activation_func,
@@ -42,7 +42,7 @@ def AtrousStridedNet(x: tf.Tensor, is_training, dropout_keep_prob, num_classes, 
     prev_block_feature_maps = []
     # we don't care about the return value (all concatenated feature maps); just the feature maps from this
     # individual block (this prevents the number of feature maps from blowing up in size)
-    dense_block(downsample_blocks, is_training, opt.arch_bottleneck_layer_count, initializer_descriptor,
+    dense_block_atrous(downsample_blocks, is_training, opt.arch_bottleneck_layer_count, initializer_descriptor,
                 add_features_per_layer=opt.arch_dense_block_add_features_per_layer,
                 activation=activation_func,
                 feature_maps_out=prev_block_feature_maps,
@@ -62,7 +62,7 @@ def AtrousStridedNet(x: tf.Tensor, is_training, dropout_keep_prob, num_classes, 
 
         prev_block_feature_maps = []
         # note: we only end up actually using the output from the last dense block
-        upsampled_output = dense_block(upsampled, is_training, dense_block_layer_counts[i], initializer_descriptor,
+        upsampled_output = dense_block_atrous(upsampled, is_training, dense_block_layer_counts[i], initializer_descriptor,
                                        add_features_per_layer=opt.arch_dense_block_add_features_per_layer,
                                        activation=activation_func,
                                        feature_maps_out=prev_block_feature_maps,
@@ -158,7 +158,7 @@ def AtrousNet(x: tf.Tensor, is_training, dropout_keep_prob, num_classes, opt: Tr
     shortcuts = [None for _ in range(len(dense_block_layer_counts))]
     downsample_blocks = conv1
     for i in range(len(dense_block_layer_counts)):
-        downsample_blocks = dense_block(downsample_blocks, is_training, dense_block_layer_counts[i],
+        downsample_blocks = dense_block_atrous(downsample_blocks, is_training, dense_block_layer_counts[i],
                                         initializer_descriptor,
                                         add_features_per_layer=opt.arch_dense_block_add_features_per_layer,
                                         activation=activation_func,
@@ -178,7 +178,7 @@ def AtrousNet(x: tf.Tensor, is_training, dropout_keep_prob, num_classes, opt: Tr
     prev_block_feature_maps = []
     # we don't care about the return value (all concatenated feature maps); just the feature maps from this
     # individual block (this prevents the number of feature maps from blowing up in size)
-    dense_block(downsample_blocks, is_training, opt.arch_bottleneck_layer_count, initializer_descriptor,
+    dense_block_atrous(downsample_blocks, is_training, opt.arch_bottleneck_layer_count, initializer_descriptor,
                 add_features_per_layer=opt.arch_dense_block_add_features_per_layer,
                 activation=activation_func,
                 feature_maps_out=prev_block_feature_maps,
@@ -198,7 +198,7 @@ def AtrousNet(x: tf.Tensor, is_training, dropout_keep_prob, num_classes, opt: Tr
 
         prev_block_feature_maps = []
         # note: we only end up actually using the output from the last dense block
-        upsampled_output = dense_block(upsampled, is_training, dense_block_layer_counts[i], initializer_descriptor,
+        upsampled_output = dense_block_atrous(upsampled, is_training, dense_block_layer_counts[i], initializer_descriptor,
                                        add_features_per_layer=opt.arch_dense_block_add_features_per_layer,
                                        activation=activation_func,
                                        feature_maps_out=prev_block_feature_maps,
