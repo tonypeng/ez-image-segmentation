@@ -216,6 +216,8 @@ class Trainer:
             return [(nets.Tiramisu(x, is_training, dropout_keep_prob, num_classes, self.opt), 1.0)]
         if self.opt.arch == 'AtrousStridedNet':
             return [(nets.AtrousStridedNet(x, is_training, dropout_keep_prob, num_classes, self.opt), 1.0)]
+        if self.opt.arch == 'AtrousStridedResizeNet':
+            return [(nets.AtrousStridedResizeNet(x, is_training, dropout_keep_prob, num_classes, self.opt), 1.0)]
         if self.opt.arch == 'StridedNet':
             return [(nets.StridedNet(x, is_training, dropout_keep_prob, num_classes, self.opt), 1.0)]
         if self.opt.arch == 'AtrousNet':

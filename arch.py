@@ -60,13 +60,12 @@ def deconv2d(x: tf.Tensor, ksize, stride, chan_out, initializer_descriptor, bord
                                   padding=border_mode)
 
 
-def resizeconv2d(x, W, stride, chan_out, initializer_descriptor, border_mode='SAME'):
+def resizeconv2d(x, ksize, stride, chan_out, initializer_descriptor, border_mode='SAME', weight_decay=None):
     x_size = utils.tensor_shape_as_list(x)
     resized_height, resized_width = x_size[1] * stride * stride, x_size[2] * stride * stride
     x_resized = tf.image.resize_images(x, (resized_height, resized_width),
                                        method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
-    W_T = tf.transpose(W, perm=[0, 1, 3, 2])
-    return conv2d(x_resized, W_T, stride, chan_out, initializer_descriptor, border_mode='SAME')
+    return conv2d(x_resized, ksize, stride, chan_out, initializer_descriptor, border_mode='SAME', weight_decay=weight_decay)
 
 
 def avg_pool(x: tf.Tensor, ksize, stride=None, border_mode='SAME'):
@@ -93,6 +92,7 @@ def conv2d_bn_activation(x: tf.Tensor, is_training, ksize, stride, chan_out, ini
         outp = dropout(outp, dropout_keep_prob)
     return outp
 
+
 def conv2d_bn_activation_atrous(x: tf.Tensor, is_training, ksize, stride, chan_out, initializer_descriptor,
                          border_mode='SAME', activation=tf.nn.relu, bn_scale=False, weight_decay=None,
                          dropout_keep_prob=None):
@@ -104,6 +104,7 @@ def conv2d_bn_activation_atrous(x: tf.Tensor, is_training, ksize, stride, chan_o
     if dropout_keep_prob is not None:
         outp = dropout(outp, dropout_keep_prob)
     return outp
+
 
 def max_pool(x: tf.Tensor, ksize, stride=None, border_mode='SAME'):
     stride = stride or ksize
@@ -158,6 +159,17 @@ def transition_up_block(x: tf.Tensor, is_training, initializer_descriptor,
                         activation=tf.nn.relu, weight_decay=None, dropout_keep_prob=None):
     chan_in = utils.tensor_shape_as_list(x)[-1]
     outp = deconv2d(x, 3, 2, chan_in, initializer_descriptor, weight_decay=weight_decay)
+    outp = batch_norm(outp, is_training)
+    outp = activation(outp)
+    # if dropout_keep_prob is not None:
+    #     outp = dropout(outp, dropout_keep_prob)
+    return outp
+
+
+def transition_up_block_resize(x: tf.Tensor, is_training, initializer_descriptor,
+                        activation=tf.nn.relu, weight_decay=None, dropout_keep_prob=None):
+    chan_in = utils.tensor_shape_as_list(x)[-1]
+    outp = resizeconv2d(x, 3, 2, chan_in, initializer_descriptor, weight_decay=weight_decay)
     outp = batch_norm(outp, is_training)
     outp = activation(outp)
     # if dropout_keep_prob is not None:
