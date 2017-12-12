@@ -9,7 +9,7 @@ from data_pipelines import *
 from TrainerOptions import *
 
 
-class Trainer:
+class Evaluator:
     def __init__(self, opt: TrainerOptions):
         self.opt = opt
         self.loss_history = []
@@ -78,9 +78,6 @@ class Trainer:
                 regularizer = tf.add_n(tf.get_collection('weight_regularizers'))
                 loss += regularizer
 
-            pixel_acc = tf.contrib.metrics.streaming_accuracy(tf.squeeze(tf.cast(preds, tf.int32)), tf.squeeze(y))
-            mean_iou = tf.contrib.metrics.streaming_mean_iou(tf.squeeze(tf.cast(preds, tf.int32)), tf.squeeze(y), dataset.num_classes())
-
             # Create optimizer
             print("4. Optimizing...")
             update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
@@ -88,34 +85,24 @@ class Trainer:
                 optimizer = self._construct_optimizer(learning_rate)
                 optimize = optimizer.minimize(loss)
 
+            pixel_acc = tf.contrib.metrics.streaming_accuracy(tf.squeeze(tf.cast(preds, tf.int32)), tf.squeeze(y))
+            mean_iou = tf.contrib.metrics.streaming_mean_iou(tf.squeeze(tf.cast(preds, tf.int32)), tf.squeeze(y), dataset.num_classes()+1)
+
             coord = tf.train.Coordinator()
             threads = tf.train.start_queue_runners(sess=sess, coord=coord)
             sess.run(tf.global_variables_initializer())
 
             # Checkpointing
             saver = tf.train.Saver(max_to_keep=5)
-            it = 0
-            processed_samples = 0
-            last_loss_change_processed_samples = 0
             if len(opt.checkpoint_name) > 1:
                 saver.restore(sess, opt.checkpoint_name)
                 it = opt.start_from_iteration
 
-            pavg = 0.
-            mavg = 0.
-            for _ in range(dataset.num_training_samples()):
-                pixel_acc, mean_iou = sess.run(
-                    [pixel_acc, mean_iou],
-                    feed_dict={
-                        learning_rate: curr_learning_rate,
-                        phase: Phases.TRAINING,
-                        is_training: False,
-                        dropout_keep_prob: 1.0,
-                    })
-                pavg += pixel_acc
-                mavg += mean_iou
-            while _ in range (dataset.num_validation_samples()):
-                pixel_acc, mean_iou = sess.run(
+            with tf.name_scope("streaming"):
+                # clear counters for a fresh evaluation
+                sess.run(tf.local_variables_initializer())
+            for _ in range (dataset.num_validation_samples()):
+                (pa, _), (mi, _)  = sess.run(
                     [pixel_acc, mean_iou],
                     feed_dict={
                         learning_rate: curr_learning_rate,
@@ -123,11 +110,20 @@ class Trainer:
                         is_training: False,
                         dropout_keep_prob: 1.0,
                     })
-            pavg += pixel_acc
-            mavg += mean_iou
-            it += 1
-            print("Mean pixel accuracy: " + float(pavg)/float((dataset.num_training_samples()+dataset.num_validation_samples())))
-            print("Mean pixel accuracy: " + float(mavg)/float((dataset.num_training_samples()+dataset.num_validation_samples())))
+            print("Val Mean pixel accuracy: " + pa)
+            print("Val Mean IoU: " + mi)
+            for _ in range(dataset.num_training_samples()):
+                (pa, _), (mi, _) = sess.run(
+                    [pixel_acc, mean_iou],
+                    feed_dict={
+                        learning_rate: curr_learning_rate,
+                        phase: Phases.TRAINING,
+                        is_training: False,
+                        dropout_keep_prob: 1.0,
+                    })
+                print(pa, mi)
+            print("Train Mean pixel accuracy: " + pa)
+            print("Train Mean IoU: " + mi)
             coord.join(threads)
             sess.close()
 
