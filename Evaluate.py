@@ -110,8 +110,10 @@ class Evaluator:
                         is_training: False,
                         dropout_keep_prob: 1.0,
                     })
-            print("Val Mean pixel accuracy: " + pa)
-            print("Val Mean IoU: " + mi)
+            print("Val Mean pixel accuracy: ")
+            print(pa)
+            print("Val Mean IoU: ")
+            print(mi)
             for _ in range(dataset.num_training_samples()):
                 (pa, _), (mi, _) = sess.run(
                     [pixel_acc, mean_iou],
@@ -121,9 +123,10 @@ class Evaluator:
                         is_training: False,
                         dropout_keep_prob: 1.0,
                     })
-                print(pa, mi)
-            print("Train Mean pixel accuracy: " + pa)
-            print("Train Mean IoU: " + mi)
+            print("Global Mean pixel accuracy: ")
+            print(pa)
+            print("Global Mean IoU: ")
+            print(mi)
             coord.join(threads)
             sess.close()
 
