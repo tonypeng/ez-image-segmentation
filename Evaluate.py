@@ -119,7 +119,7 @@ class Evaluator:
                     [pixel_acc, mean_iou],
                     feed_dict={
                         learning_rate: curr_learning_rate,
-                        phase: Phases.TRAINING,
+                        phase: Phases.EVALUATE_TRAINING,
                         is_training: False,
                         dropout_keep_prob: 1.0,
                     })
