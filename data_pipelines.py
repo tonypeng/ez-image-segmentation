@@ -97,6 +97,10 @@ class Ade20kTfRecords:
         return ade20k.SPLITS_TO_SIZES['training']
 
     @classmethod
+    def num_validation_samples(cls):
+        return ade20k.SPLITS_TO_SIZES['validation']
+
+    @classmethod
     def mean_pixel(cls):
         return np.array([ade20k_pre._R_MEAN, ade20k_pre._G_MEAN, ade20k_pre._B_MEAN])
 
@@ -130,6 +134,10 @@ class CamVidTfRecords:
     @classmethod
     def num_training_samples(cls):
         return camvid.SPLITS_TO_SIZES['training']
+
+    @classmethod
+    def num_validation_samples(cls):
+        return camvid.SPLITS_TO_SIZES['validation']
 
     @classmethod
     def mean_pixel(cls):
