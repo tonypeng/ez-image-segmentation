@@ -145,6 +145,10 @@ class CamVid:
         return camvid.SPLITS_TO_SIZES['training']
 
     @classmethod
+    def num_validation_samples(cls):
+        return camvid.SPLITS_TO_SIZES['validation']
+
+    @classmethod
     def mean_pixel(cls):
         return np.array([camvid_pre._R_MEAN, camvid_pre._G_MEAN, camvid_pre._B_MEAN])
 
